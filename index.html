@@ -163,7 +163,7 @@ html.srmode .scanbar,html.srmode #alertbar{display:none!important}
 .srready{display:flex;flex-direction:column;gap:clamp(10px,1.2vw,22px)}
 .srready .srname{font-size:clamp(30px,3.6vw,72px);color:var(--sr-gold);display:flex;align-items:center;gap:.4em}
 .srready .srname::before{content:"✓";font-size:.7em;color:var(--sr-petrol-d);background:var(--sr-gold);border-radius:999px;width:1.25em;height:1.25em;display:inline-flex;align-items:center;justify-content:center;flex:none}
-.srready .srname span{overflow:hidden;text-overflow:ellipsis}
+.srready .srname{white-space:normal}.srready .srname span{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.05}
 .srready .srname.new{animation:srblink 1.2s ease-in-out infinite}
 @keyframes srblink{0%,100%{opacity:1}50%{opacity:.45}}
 .srempty{font-family:var(--sr-body);font-size:clamp(18px,1.7vw,32px);color:var(--sr-muted)}
@@ -179,6 +179,27 @@ html.srmode .scanbar,html.srmode #alertbar{display:none!important}
 .srclock small{display:block;color:#B7CAD4;font-size:clamp(13px,1.15vw,22px)}
 @media (max-width:900px){#srBoard{grid-template-columns:1fr}.srfmsg{display:none}}
 @media (prefers-reduced-motion: reduce){.srready .srname.new{animation:none}.srbar i{transition:none}}
+.srname small.srsub{font-family:var(--sr-body);font-weight:600;font-size:.5em;text-transform:none;letter-spacing:0;opacity:.75;margin-left:.4em}
+.srready .srname small.srsub{color:#F7F4EF}
+#srPop{position:absolute;inset:0;z-index:6;display:none;align-items:center;justify-content:center;background:rgba(15,58,78,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#srPop.show,#srPop.hide{display:flex}
+#srPop.show{animation:srpopbg .35s ease both}#srPop.hide{animation:srpopbg .5s ease reverse both}
+.srpopcard{background:var(--sr-petrol-d);border:4px solid var(--sr-gold);border-radius:clamp(24px,2.4vw,44px);padding:clamp(28px,3vw,60px) clamp(36px,4.4vw,96px);max-width:min(84vw,1500px);display:flex;flex-direction:column;align-items:center;gap:clamp(8px,1vw,18px);text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.35),0 0 0 0 rgba(255,209,149,.5)}
+#srPop.show .srpopcard{animation:srpopin .7s cubic-bezier(.2,1.4,.4,1) both, srring 1.6s ease-out .7s 3}
+#srPop.hide .srpopcard{animation:srpopout .5s ease both}
+.srpopbell{width:clamp(70px,7vw,140px);height:clamp(70px,7vw,140px);color:var(--sr-gold);transform-origin:50% 12%}
+.srpopbell svg{width:100%;height:100%;display:block}
+#srPop.show .srpopbell{animation:srswing 1.1s ease-in-out .2s 4}
+.srpopcard small{font-family:var(--sr-display);font-weight:700;font-size:clamp(20px,2vw,40px);letter-spacing:.3em;text-transform:uppercase;color:var(--sr-bg)}
+.srpopcard b{font-family:var(--sr-display);font-weight:700;font-size:clamp(48px,6.4vw,140px);line-height:1.02;text-transform:uppercase;color:var(--sr-gold);letter-spacing:-.01em;overflow-wrap:anywhere}
+.srpopcard em{font-style:normal;font-family:var(--sr-body);font-weight:600;font-size:clamp(20px,2vw,40px);color:#F7F4EF;opacity:.85}
+.srpopcard span{font-family:var(--sr-body);font-weight:700;font-size:clamp(20px,2.1vw,42px);color:#B7CAD4}
+@keyframes srpopbg{from{opacity:0}to{opacity:1}}
+@keyframes srpopin{0%{opacity:0;transform:scale(.55) translateY(40px)}70%{opacity:1;transform:scale(1.04)}100%{transform:scale(1)}}
+@keyframes srpopout{to{opacity:0;transform:scale(.9)}}
+@keyframes srswing{0%,100%{transform:rotate(0)}15%{transform:rotate(16deg)}35%{transform:rotate(-14deg)}55%{transform:rotate(10deg)}75%{transform:rotate(-6deg)}}
+@keyframes srring{0%{box-shadow:0 30px 80px rgba(0,0,0,.35),0 0 0 0 rgba(255,209,149,.55)}100%{box-shadow:0 30px 80px rgba(0,0,0,.35),0 0 0 40px rgba(255,209,149,0)}}
+@media (prefers-reduced-motion: reduce){#srPop.show .srpopcard,#srPop.show .srpopbell{animation:none}}
 #srBar{position:absolute;right:14px;top:12px;display:flex;gap:8px;align-items:center;z-index:5;opacity:.35;transition:opacity .2s}
 #srBar:hover,#srBar:focus-within{opacity:1}
 .srsound{background:var(--sr-petrol-d);color:#F7F4EF;border:1px solid #3C6E86;border-radius:999px;padding:6px 14px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--sr-body)}
@@ -4418,9 +4439,22 @@ function srBell(){ try{ unlockAudio(); const c=audioCtx; if(!c) return; const t0
   [[0,659.3],[.55,523.3],[1.7,659.3],[2.25,523.3]].forEach(([dt,f])=>{ [1,2.76,5.4].forEach((h,j)=>{ const o=c.createOscillator(), g=c.createGain(); o.type="sine"; o.frequency.value=f*h;
     const a=[.5,.16,.06][j]; g.gain.setValueAtTime(.0001,t0+dt); g.gain.exponentialRampToValueAtTime(a,t0+dt+.01); g.gain.exponentialRampToValueAtTime(.0001,t0+dt+1.6-j*.4);
     o.connect(g); g.connect(c.destination); o.start(t0+dt); o.stop(t0+dt+1.7); }); }); }catch(e){} }
-function srCheckReady(ready){ let ring=false;
-  ready.forEach(o=>{ const k=o.id+":"+o.pickedAt; if(SR.ready.has(k)) return; SR.ready.add(k); if(o.pickedAt > SR.boot-60000) ring=true; });
-  if(ring) srBell(); }
+function srCheckReady(ready){
+  [...ready].reverse().forEach(o=>{ const k=o.id+":"+o.pickedAt; if(SR.ready.has(k)) return; SR.ready.add(k); if(o.pickedAt > SR.boot-60000) (SR.pop ||= []).push(o); });
+  srPopNext(); }
+/* aviso de pedido pronto: popup no centro da tela com o sininho e o nome do cliente (um por vez, ~8 s cada) */
+const SR_BELL_SVG = `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 6a4 4 0 0 1 4 4v2.4c8.6 1.8 14 9.3 14 18.6v9.5l5 6.5v3H13v-3l5-6.5V31c0-9.3 5.4-16.8 14-18.6V10a4 4 0 0 1 4-4z" fill="currentColor"/><path d="M25 53a7 7 0 0 0 14 0z" fill="currentColor"/></svg>`;
+function srPopNext(){ if(SR.popOn || !(SR.pop||[]).length) return; const root=document.getElementById("srRoot"); if(!root) return;
+  const o=SR.pop.shift(), L=srLabel(o); SR.popOn=true;
+  let el=document.getElementById("srPop"); if(!el){ el=document.createElement("div"); el.id="srPop"; el.setAttribute("role","alert"); root.appendChild(el); }
+  el.innerHTML=`<div class="srpopcard"><div class="srpopbell">${SR_BELL_SVG}</div><small>Pedido pronto</small><b>${esc(L.name)}</b>${L.sub?`<em>${esc(L.sub)}</em>`:""}<span>Vendedor(a), retire na expedição</span></div>`;
+  el.className=""; void el.offsetWidth; el.className="show"; srBell();
+  setTimeout(()=>{ el.className="hide"; setTimeout(()=>{ el.className=""; SR.popOn=false; srPopNext(); }, 600); }, 8000); }
+/* nome do painel; cliente genérico ("Ao consumidor", "Consumidor final"…) mostra a pré-venda e o vendedor */
+function srLabel(o){ const raw=String(o.client||"").trim(), g=raw.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().replace(/[^A-Z ]/g,"").trim();
+  if(!g || /^(AO |O )?(CONSUMIDOR|CLIENTE)( FINAL| BALCAO| AVULSO)?$|^(VENDA )?BALCAO$|^CLIENTE( NAO)? IDENTIFICADO$/.test(g))
+    return {name:`Pré-venda #${o.num||""}`, sub:o.seller?`Cliente de ${o.seller}`:"", generic:true};
+  return {name:srName(raw), sub:""}; }
 function srShuffle(){ const v=(SRCFG.videos||[]).map((x,i)=>i); for(let i=v.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [v[i],v[j]]=[v[j],v[i]]; } SR.order=v; SR.vidIdx=-1; }
 function srNextVideo(){ const vid=document.getElementById("srVid"), V=SRCFG.videos||[]; if(!vid || !V.length) return;
   if(!SR.order.length || SR.order.some(i=>!V[i]) || SR.vidIdx>=SR.order.length-1) srShuffle();
@@ -4455,7 +4489,7 @@ function renderShowroom(){
   const busy = wait.length || doing.length || ready.length, vid=document.getElementById("srVid"), V=SRCFG.videos||[];
   document.getElementById("srRoot").className = busy ? "busy" : V.length ? "video" : "idle";
   if(busy){ if(vid && !vid.paused) vid.pause();
-    const nm=o=>esc(srName(o.client||"Cliente")), newest=ready[0]?.pickedAt||0;
+    const nm=o=>{ const L=srLabel(o); return esc(L.name)+(L.sub?` <small class="srsub">${esc(L.sub)}</small>`:""); }, newest=ready[0]?.pickedAt||0;
     document.getElementById("srBoard").innerHTML = `
       <section class="srcol prep"><h2>Em separação</h2>
         <div class="srdoing" id="srDoing">${doing.length ? doing.map(o=>{ const p=srProg(o); return `<div class="srrow"><div class="srname" title="${esc(o.client||"")}">${nm(o)}</div>
