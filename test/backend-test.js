@@ -178,6 +178,18 @@ document.documentElement.classList.add("ps-test"); // no teste os botões "Simul
       return { saved:true };
     }
   };
+  /* painel do showroom sem login (mesma regra da função showroom_feed) */
+  const SR_KEY = (location.hash.match(/^#showroom=([A-Za-z0-9_-]{16,})$/) || [])[1] || null;
+  window.psShowroom = {
+    key: SR_KEY,
+    async link(rot){ if(!DB.srkey || rot){ DB.srkey = Array.from(crypto.getRandomValues(new Uint8Array(12)), b=>b.toString(16).padStart(2,"0")).join(""); save(); } return DB.srkey; },
+    async feed(){ if(!DB.srkey || SR_KEY !== DB.srkey) return { error:"Link do painel inválido. Peça um novo link ao administrador." };
+      const now=Date.now(), orders=Object.values(DB.orders||{}).filter(o=>o.naLoja && o.canal!=="ecommerce" && !o.deletedAt && (["aguardando","separando"].includes(o.status) || (["na_mesa","lavagem","pronto_envio"].includes(o.status) && (o.pickedAt||0) > now-7200000)))
+        .map(o=>({ id:o.id, num:o.num, client:o.client, seller:o.seller, status:o.status, naLoja:o.naLoja, canal:o.canal, queuedAt:o.queuedAt, createdAt:o.createdAt, startedAt:o.startedAt, startedBy:o.startedBy, pickedAt:o.pickedAt, live:o.live, fase2:o.fase2, encParcial:o.encParcial, res:o.res,
+          items:(o.items||[]).map(i=>({ code:i.code, qty:i.qty, qtyEnc:i.qtyEnc||0, encStored:i.encStored, compra:i.compra })) }));
+      const names={}; orders.forEach(o=>{ if(o.startedBy) names[o.startedBy]=DB.users?.[o.startedBy]?.name||""; });
+      return { cfg: DB.config?.showroom || null, orders, names }; }
+  };
   /* saída da colmeia pelo celular sem login (mesma regra das funções do Supabase) */
   const HV_TOKEN = (location.hash.match(/^#cm=([A-Za-z0-9_-]{20,})$/) || [])[1] || null;
   const tokOk = t => { const k = (DB.hive_tokens ||= {})[t]; if(!k) return [null, "Link inválido."]; if(k.used_at) return [null, "Este link já foi usado."]; if(k.expires_at < Date.now()) return [null, "Este link expirou. Gere um novo QR code no computador."]; return [k, null]; };
@@ -221,7 +233,7 @@ document.documentElement.classList.add("ps-test"); // no teste os botões "Simul
         const clean=Object.fromEntries(Object.entries(data).filter(([key])=>ORDER_KEYS.includes(key))); DB.orders[id]={...DB.orders[id], ...clone(clean)}; save(); emit("orders"); return {ok:true}; }
       return {error:"Tabela inválida."}; }
   };
-  window.claude = (HV_TOKEN || RC_TOKEN) ? { async use(){ return null; } } : { async use(name){ return name === "db" ? db : name === "user" ? user : name === "downloads" ? downloads : null; } };
+  window.claude = (HV_TOKEN || RC_TOKEN || SR_KEY) ? { async use(){ return null; } } : { async use(name){ return name === "db" ? db : name === "user" ? user : name === "downloads" ? downloads : null; } };
   window.psRefresh = async () => { Object.keys(DB).forEach(emit); };
   window.psErrors = async () => { const n=Date.now(); return [
     {created_at:new Date(n-36e5).toISOString(), kind:"error", message:"TypeError: Cannot read properties of undefined (reading 'code')", source:"index.html:4890:12", url:"https://picking-serena.vercel.app/", user_agent:"Mozilla/5.0 (Linux; Android 11; KP58HYT) Chrome/120", session_id:"a1"},

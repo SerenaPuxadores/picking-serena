@@ -32,7 +32,14 @@
     info: t => rpcJ("nf_token_info", { p_token: t }),
     write: (t, table, id, data) => rpcJ("nf_token_write", { p_token: t, p_table: table, p_id: id, p_data: data })
   };
-  if(HV_TOKEN || RC_TOKEN){ window.claude = { use: async () => null }; return; } // sem tela de login: só a conferência pelo link
+  /* Painel do showroom sem login (#showroom=<chave>): só lê os pedidos de cliente na loja */
+  const SR_KEY = (location.hash.match(/^#showroom=([A-Za-z0-9_-]{16,})$/) || [])[1] || null;
+  window.psShowroom = {
+    key: SR_KEY,
+    feed: () => rpcJ("showroom_feed", { p_key: SR_KEY }),
+    link: rotate => rpcJ("showroom_key", { p_rotate: !!rotate })
+  };
+  if(HV_TOKEN || RC_TOKEN || SR_KEY){ window.claude = { use: async () => null }; return; } // sem tela de login: só a conferência pelo link / o painel
 
   let session = null, profile = null, readyResolve;
   const ready = new Promise(r => readyResolve = r);

@@ -128,6 +128,7 @@ img{max-width:100%}
 @media (max-width:800px){.gev{grid-template-columns:1fr}.gev small{text-align:left}.gev.xo .gevt,.gev.xo .gevr{grid-column:1}.gev.xo .gevr{grid-row:auto}.gev.xo time,.gev.xo small{grid-row:auto}}
 .gerr{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:10px 12px}.gerrm{min-width:0}.gerrm b{display:block;font-family:var(--mono);font-size:13px;word-break:break-word}.gerrm small{color:var(--muted)}
 .gmodal{max-width:760px}.gmodal .glist{max-height:260px;overflow:auto}.gitem{display:grid;grid-template-columns:80px minmax(0,1fr);gap:2px 10px;border-bottom:1px solid var(--line);padding:6px 0}.gitem small{grid-column:2;color:var(--muted)}
+#srErr{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#8a1c1c;color:#fff;padding:10px 18px;border-radius:10px;font:600 18px Manrope,system-ui,sans-serif;z-index:20}
 /* ---- Painel do showroom: identidade Serena Puxadores (petróleo + areia + dourado), a mesma do Envio Full e da Consulta de Preço ---- */
 html.srmode{--sr-bg:#F5F2ED;--sr-surface:#FFFFFF;--sr-ink:#143F54;--sr-ink2:#3C4E58;--sr-muted:#5B6970;--sr-line:#E4DED3;--sr-line2:#F0EBE3;--sr-petrol:#164C64;--sr-petrol-d:#0F3A4E;--sr-accent:#8A6526;--sr-accent-soft:#FBF0DF;--sr-gold:#FFD195;--sr-ok:#16658A;--sr-ok-soft:#E3EEF3;
   --sr-display:"Montserrat",system-ui,sans-serif;--sr-body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;--sr-mono:"JetBrains Mono",ui-monospace,Menlo,monospace}
@@ -180,6 +181,7 @@ html.srmode .scanbar,html.srmode #alertbar{display:none!important}
 .srsound{background:var(--sr-petrol-d);color:#F7F4EF;border:1px solid #3C6E86;border-radius:999px;padding:6px 14px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--sr-body)}
 .srsound.need{opacity:1}
 #srRoot:has(.srsound.need) #srBar{opacity:1}
+.srlink{display:flex;flex-direction:column;gap:6px;margin:6px 0 10px}
 .srvlist{display:flex;flex-direction:column;gap:6px;margin:8px 0}.srvrow{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:6px 10px}.srvrow span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.srvrow small{color:var(--muted);margin-left:8px}
 @media (max-width:900px){.srcard{grid-template-columns:1fr}.srhead .srttl{display:none}}
 @media (prefers-reduced-motion: reduce){.srsec.ready{animation:none}.srbar i{transition:none}}
@@ -1488,7 +1490,9 @@ document.addEventListener("click", e => {
 const state = { canal:(()=>{ try{ return localStorage.getItem("ps-canal")||"consultiva"; }catch(e){ return "consultiva"; } })(), sector:null, view:"orders", oid:null, idx:0, phase:"loc", count:0, draft:null, draftErr:"", parsing:false, etab:"enderecos", rua:1, lado:"A", selLoc:null, mesaLast:null };
 if(location.hash==="#tv") state.view="tv";
 /* painel do showroom (monitor da loja) */
-let IS_SHOWROOM = location.hash==="#showroom";
+let IS_SHOWROOM = /^#showroom(=|$)/.test(location.hash);
+/* painel sem login (#showroom=<chave>): os pedidos chegam por uma consulta própria, a cada 3 s */
+const SR_PUB = window.psShowroom?.key ? {orders:[], names:{}, err:"", ok:false} : null;
 let SRCFG = {videos:[], readyMin:10}, srDoc=null;
 const SR = {ready:new Set(), boot:Date.now(), vidIdx:-1, order:[], soundOk:false};
 const SR_LIVE={k:"", t:0, tm:null};
@@ -1497,7 +1501,7 @@ const usFromHash = () => { const m=location.hash.match(/^#devolver-(.+)$/); if(m
 (()=>{ const m=location.hash.match(/^#hvloc=(.+)$/); if(m) state.hvLocPending=decodeURIComponent(m[1]); })();
 const hoFromHash = () => { const m=location.hash.match(/^#colmeia-(retirou|enviado)-(.+)$/); if(m){ state.hoPending={how:m[1], oid:decodeURIComponent(m[2])}; state.sector="colmeias"; } };
 usFromHash(); hoFromHash(); window.addEventListener("hashchange", ()=>{ usFromHash(); hoFromHash(); if(state.usPending || state.hoPending) render(); });
-window.addEventListener("hashchange", ()=>{ const on=location.hash==="#showroom"; if(on===IS_SHOWROOM) return; IS_SHOWROOM=on; SR.boot=Date.now(); if(!on){ const r=document.getElementById("srRoot"); if(r){ r.querySelector("video")?.pause(); r.remove(); } } render(); });
+window.addEventListener("hashchange", ()=>{ const on=/^#showroom(=|$)/.test(location.hash); if(on===IS_SHOWROOM) return; IS_SHOWROOM=on; SR.boot=Date.now(); if(!on){ const r=document.getElementById("srRoot"); if(r){ r.querySelector("video")?.pause(); r.remove(); } } render(); });
 window.addEventListener("hashchange", ()=>{ if(location.hash==="#tv"){ state.view="tv"; render(); } else if(state.view==="tv"){ state.view="orders"; render(); } });
 function initialSector(){ const h=location.hash.slice(1); if(["gestao","comercial","expedicao","colmeias","compras","recebimento","estoque","chamados","usuarios"].includes(h)) return h; return innerWidth>=900 ? "comercial" : "expedicao"; }
 state.sector = initialSector();
@@ -4369,7 +4373,7 @@ function tvColumn(canal, title){
 /* ================== Painel do showroom (#showroom) ==================
    Monitor na loja: mostra a separação dos pedidos de CLIENTE NA LOJA (aguardando → em separação com barra de progresso → pronto).
    Sem pedidos, passa os vídeos de propaganda que o administrador envia. Quando um pedido fica pronto, toca uma campainha. */
-const srOrders = () => ORDERS.filter(o=>o.naLoja && !isEco(o) && o.status!=="excluido" && !o.deletedAt);
+const srOrders = () => (SR_PUB ? SR_PUB.orders : ORDERS).filter(o=>o.naLoja && !isEco(o) && o.status!=="excluido" && !o.deletedAt);
 function srProg(o){ const pl=pickList(o), r=res(o); let need=0, got=0;
   pl.forEach(x=>{ need+=x.need; let g=+r[x.i]?.got||0; if((r[x.i]?.status||"pend")==="pend" && o.live && +o.live.i===x.i) g=Math.max(g, +o.live.n||0); got+=Math.min(x.need, g); });
   return {need, got, pct: need ? Math.round(got/need*100) : 0}; }
@@ -4398,7 +4402,7 @@ function srCard(o, kind, pos){ const p=kind==="doing" ? srProg(o) : null, t=Date
   return `<div class="srcard ${kind}">
     <div class="srwho"><div class="srtop"><span class="srnum">Pré-venda #${esc(o.num)}</span>${o.seller?`<span class="srseller">Vendedor(a) <b>${esc(o.seller)}</b></span>`:""}</div>
       <div class="srcli">${esc(o.client||"Cliente")}</div></div>
-    <div class="srst">${kind==="doing" ? `<div class="srbar"><i style="width:${p.pct}%"></i></div><div class="srmeta"><b>${p.pct}%</b><span>${p.got} de ${p.need} peças${o.startedBy?` · <span data-uid="${esc(o.startedBy)}" data-fallback="separador"></span>`:""}</span></div>`
+    <div class="srst">${kind==="doing" ? `<div class="srbar"><i style="width:${p.pct}%"></i></div><div class="srmeta"><b>${p.pct}%</b><span>${p.got} de ${p.need} peças${o.startedBy?` · ${SR_PUB ? esc(SR_PUB.names[o.startedBy]||"separador") : `<span data-uid="${esc(o.startedBy)}" data-fallback="separador"></span>`}`:""}</span></div>`
       : kind==="wait" ? `<span class="srtag wait">${pos}º na fila</span><div class="srmeta"><span>aguardando há ${Math.max(1,Math.round(t/60000))} min</span></div>`
       : `<span class="srtag ready">✓ Pronto às ${new Date(o.pickedAt).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</span><div class="srmeta"><span>Buscar na expedição</span></div>`}</div>
   </div>`; }
@@ -4416,12 +4420,14 @@ function renderShowroom(){
       <div id="srIdle"><img src="${SR_LOGO}" alt="Serena Puxadores"><small>Showroom</small></div>
       <header class="srhead"><img src="${SR_LOGO}" alt="Serena Puxadores"><div class="srttl"><small>Showroom</small><b>Status dos pedidos</b></div><div class="sp"></div><div class="srclock"><b id="srClock"></b><small id="srDate"></small></div></header>
       <div id="srBoard"></div>
-      <div id="srBar">${audioCtx && audioCtx.state==="running" ? "" : `<button class="srsound need" id="srSound">🔇 Toque para ativar o som</button>`}<button class="srsound" id="srFull" title="Tela cheia">⛶</button><button class="srsound" id="srExit" title="Sair do painel">✕</button></div></div>`;
+      <div id="srBar">${audioCtx && audioCtx.state==="running" ? "" : `<button class="srsound need" id="srSound">🔇 Toque para ativar o som</button>`}<button class="srsound" id="srFull" title="Tela cheia">⛶</button>${SR_PUB?"":`<button class="srsound" id="srExit" title="Sair do painel">✕</button>`}</div>
+      <div id="srErr" hidden></div></div>`;
     const vid=document.getElementById("srVid"); vid.onended=srNextVideo; vid.onerror=()=>setTimeout(srNextVideo, 1500);
-    document.getElementById("srExit").onclick=()=>{ location.hash=""; };
+    const ex=document.getElementById("srExit"); if(ex) ex.onclick=()=>{ location.hash=""; };
     document.getElementById("srFull").onclick=()=>{ try{ document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }catch(e){} };
     const sb=document.getElementById("srSound"); if(sb) sb.onclick=()=>{ unlockAudio(); setTimeout(()=>{ if(audioCtx?.state==="running"){ sb.remove(); const v=document.getElementById("srVid"); if(v) v.muted=false; srBell(); } }, 300); };
   }
+  const er=document.getElementById("srErr"); if(er){ er.hidden=!(SR_PUB && SR_PUB.err); er.textContent=SR_PUB?.err||""; }
   const {wait, doing, ready}=srLists(); srCheckReady(ready);
   const busy = wait.length || doing.length || ready.length, vid=document.getElementById("srVid"), V=SRCFG.videos||[];
   document.getElementById("srRoot").className = busy ? "busy" : V.length ? "video" : "idle";
@@ -4438,7 +4444,17 @@ function renderShowroom(){
   const d=new Date(), ck=document.getElementById("srClock"), dt=document.getElementById("srDate");
   if(ck) ck.textContent=d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}); if(dt){ const t=d.toLocaleDateString("pt-BR",{weekday:"long", day:"2-digit", month:"long"}); dt.textContent=t.charAt(0).toUpperCase()+t.slice(1); }
 }
-setInterval(()=>{ if(IS_SHOWROOM && authReady && myRole()) renderShowroom(); }, 15000);
+setInterval(()=>{ if(IS_SHOWROOM && (SR_PUB || authReady && myRole())) renderShowroom(); }, 15000);
+/* painel sem login: busca os pedidos e a configuração a cada 3 s */
+async function srPubPoll(){ if(!SR_PUB) return;
+  try{ const r=await window.psShowroom.feed();
+    if(r?.error){ SR_PUB.err=r.error; SR_PUB.orders=[]; }
+    else { SR_PUB.err=""; SR_PUB.ok=true; SR_PUB.orders=(r.orders||[]).map(o=>({...o, items:o.items||[]})); SR_PUB.names=r.names||{};
+      const d=r.cfg; SRCFG={videos:Array.isArray(d?.videos)?d.videos:[], readyMin:+d?.readyMin||10}; }
+  }catch(e){ if(!SR_PUB.ok) SR_PUB.err="Sem conexão. Tentando de novo…"; }
+  if(IS_SHOWROOM) renderShowroom();
+  setTimeout(srPubPoll, SR_PUB.err && !SR_PUB.ok ? 10000 : 3000); }
+if(SR_PUB) setTimeout(srPubPoll, 0);
 /* separador bipando: manda o andamento do item (no máximo a cada 1,5 s) para a barra do painel */
 function srLive(){ try{ if(state.view!=="pick" || IS_SHOWROOM) return; const c=cur(); if(!c || !c.it || !c.o?.naLoja) return;
   const k=c.o.id+":"+c.it.i+":"+state.count; if(k===SR_LIVE.k) return; SR_LIVE.k=k;
@@ -6513,7 +6529,10 @@ function renderUsuarios(){
         <p class="hint">Pedido pronto (aguardando o cliente retirar ou o envio) que está na colmeia há mais tempo que isto aparece na TV com aviso de voz a cada 5 minutos, até alguém bipar a colmeia e confirmar se ele ainda está lá. Use 0 para desligar.</p>
         <div class="cfgrow"><label>Avisar depois de <input class="tin mono" id="cfgStale" type="number" min="0" max="60" value="${CONFIG.staleDays??7}" style="width:80px"> dias</label><span class="hint">${staleOrders().length} pedido(s) parado(s) agora</span></div>
         <h3>Painel do showroom</h3>
-        <p class="hint">Monitor da loja: mostra os pedidos de <b>cliente na loja</b> aguardando e em separação, com a barra de progresso conforme o separador bipa. Quando o pedido fica pronto, toca uma campainha para o vendedor buscar na expedição. Sem pedidos, passa os vídeos abaixo em ordem aleatória. Abra <a href="/#showroom" target="_blank" rel="noopener"><b>/#showroom</b></a> (ou <a href="#showroom">ver aqui</a>) no monitor (entre com um usuário Painel TV) e toque na tela uma vez para liberar o som.</p>
+        <p class="hint">Monitor da loja: mostra os pedidos de <b>cliente na loja</b> aguardando e em separação, com a barra de progresso conforme o separador bipa. Quando o pedido fica pronto, toca uma campainha para o vendedor buscar na expedição. Sem pedidos, passa os vídeos abaixo em ordem aleatória. Abra <a href="/#showroom" target="_blank" rel="noopener"><b>/#showroom</b></a> (ou <a href="#showroom">ver aqui</a>) no monitor (com login de um usuário Painel TV, ou sem login pelo <b>link sem login</b> abaixo) e toque na tela uma vez para liberar o som.</p>
+        <div class="srlink"><b>Link sem login</b> <span class="hint">para o monitor da loja abrir direto, sem usuário e senha. Mostra só o painel.</span>
+          <div class="cfgrow"><input class="tin mono" id="cfgSrLink" readonly placeholder="Toque em Gerar link" value="${esc(state.srLink||"")}" style="flex:1;min-width:0"><button class="mini" id="cfgSrLinkBtn">${state.srLink?"Copiar":"Gerar link"}</button>${state.srLink?`<button class="mini" id="cfgSrRot">${state.srRot?"Toque de novo para trocar":"Trocar link"}</button>`:""}</div>
+          <span class="hint">Trocar o link desativa o anterior (use se ele vazar).</span></div>
         <div class="cfgrow"><label>Mostrar o pedido pronto por <input class="tin mono" id="cfgSrReady" type="number" min="1" max="60" value="${SRCFG.readyMin||10}" style="width:80px"> min</label></div>
         <div class="srvlist">${(SRCFG.videos||[]).length ? SRCFG.videos.map((v,i)=>`<div class="srvrow"><span>🎬 ${esc(v.name)}<small>${v.size?(v.size/1048576).toFixed(1)+" MB · ":""}${v.at?new Date(v.at).toLocaleDateString("pt-BR"):""}</small></span><a class="mini" href="${esc(v.url)}" target="_blank" rel="noopener">Ver</a><button class="mini" data-srdel="${i}">Remover</button></div>`).join("") : `<p class="hint">Nenhum vídeo ainda.</p>`}</div>
         <label class="btn" style="margin-top:6px;display:inline-flex;cursor:pointer">+ Adicionar vídeo<input type="file" id="cfgSrUp" accept="video/mp4,video/webm,video/quicktime" multiple hidden></label>
@@ -6573,6 +6592,11 @@ function renderUsuarios(){
     CONFIG={...CONFIG, binStacks:a}; if(cfgDoc) queueWrite("cfg", ()=>cfgDoc.set(cfgData())); toast("Estantes atualizadas"); render(); };
   document.getElementById("cfgBinStk").onchange=binCfg;
   const srSave=()=>{ if(srDoc) queueWrite("cfg-sr", ()=>srDoc.set(JSON.parse(JSON.stringify(SRCFG)))); };
+  { const lb=document.getElementById("cfgSrLinkBtn"), rot=document.getElementById("cfgSrRot");
+    const mk=async r=>{ try{ const k=await window.psShowroom.link(r); state.srLink=location.origin+location.pathname+"#showroom="+k; state.srRot=false; render(); toast(r?"Link trocado · o anterior parou de funcionar":"Link gerado"); }catch(e){ toast("Não consegui gerar o link: "+(e.message||e)); } };
+    if(lb) lb.onclick=async()=>{ if(!state.srLink) return mk(false); const t=document.getElementById("cfgSrLink");
+      try{ await navigator.clipboard.writeText(state.srLink); toast("Link copiado"); }catch(e){ t.select(); toast("Selecione e copie o link"); } };
+    if(rot) rot.onclick=()=>{ if(!state.srRot){ state.srRot=true; render(); setTimeout(()=>{ if(state.srRot){ state.srRot=false; render(); } }, 4000); return; } mk(true); }; }
   document.getElementById("cfgSrReady").onchange=e=>{ SRCFG={...SRCFG, readyMin:Math.max(1,Math.min(60,Math.round(+e.target.value||10)))}; srSave(); toast(`Pronto fica ${SRCFG.readyMin} min no painel`); };
   document.querySelectorAll("[data-srdel]").forEach(b=>b.onclick=async()=>{ const i=+b.dataset.srdel, v=SRCFG.videos[i]; if(!v) return; if(!b.dataset.ok){ b.dataset.ok=1; b.textContent="Toque de novo para remover"; b.classList.add("danger"); setTimeout(()=>{ if(b.isConnected){ delete b.dataset.ok; b.textContent="Remover"; b.classList.remove("danger"); } }, 4000); return; }
     SRCFG={...SRCFG, videos:SRCFG.videos.filter((x,j)=>j!==i)}; srSave(); render(); try{ if(v.path) await window.psStorage?.remove(v.path); }catch(e){} toast("Vídeo removido"); });
@@ -6995,6 +7019,7 @@ function render(){
   pendingRender=false;
   if(HV_TK) return renderTk();
   if(RC_TK) return renderRcTk();
+  if(SR_PUB){ scanbar.hidden=true; IS_SHOWROOM=true; return renderShowroom(); }
   keepAwake(IS_SHOWROOM || state.view==="tv" || (state.sector==="expedicao" && ["pick","tray","tomesa","store","mesa","trays"].includes(state.view)));
   if(!authReady){ scanbar.hidden=true; return renderLoading(); }
   if(!myRole()){ scanbar.hidden=true; app.classList.remove("picking"); return renderNoAccess(); }
