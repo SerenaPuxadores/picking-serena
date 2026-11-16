@@ -99,11 +99,11 @@ img{max-width:100%}
 .gbars{display:flex;align-items:flex-end;gap:6px;height:180px;padding-top:18px}
 .gbar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px;min-width:0}
 .gbar i{display:block;width:100%;max-width:34px;background:var(--accent);border-radius:6px 6px 2px 2px;min-height:2px}.gbar.now i{background:var(--ink)}
-.gkbtn{text-align:left;color:inherit;font:inherit;cursor:pointer}.gkbtn:hover,.gkbtn[aria-expanded="true"]{border-color:var(--ink)}.gkbtn span{display:flex;justify-content:space-between;gap:6px}.gkbtn em{font-style:normal;font-weight:600;color:var(--ink);white-space:nowrap}
+.ggrid:has(.gwide)>.panel{grid-column:1/-1}
 .gcar{border-collapse:separate;border-spacing:3px;font-size:13px;min-width:100%}.gcar th{font-size:11px;font-weight:700;color:var(--muted);text-align:center;padding:2px 0;white-space:nowrap}.gcar th.l,.gcar td.l{text-align:left;position:sticky;left:0;background:var(--surface);z-index:1;padding-right:8px;white-space:nowrap;max-width:190px;overflow:hidden;text-overflow:ellipsis}
 .gcar td.c{min-width:32px;height:30px;text-align:center;border-radius:6px;font-weight:700;background:color-mix(in srgb,var(--accent) var(--a,0%),var(--bg))}.gcar td.c.z{color:transparent}.gcar td.c.pk{outline:2px solid var(--ink);outline-offset:-2px}
 .gcar td.t{font-weight:800;text-align:right;padding:0 6px}.gcar td.pkt{white-space:nowrap;padding-left:6px}.gcar td.pkt small{color:var(--muted);display:block;font-size:11.5px}.gcar tr.all td{border-top:1px solid var(--line)}.gcar tr.all td.l{font-weight:700}
-.gcartools{display:flex;gap:8px;flex-wrap:wrap}.gcar .pkm{display:none}@media (max-width:700px){.gcar .pkm{display:block;color:var(--muted);font-size:11px;white-space:nowrap}.gcar th.l,.gcar td.l{max-width:130px}}
+.gcartools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.gcartools .tin{width:auto;min-width:190px}.gcar .pkm{display:none}@media (max-width:700px){.gcar .pkm{display:block;color:var(--muted);font-size:11px;white-space:nowrap}.gcar th.l,.gcar td.l{max-width:130px}}
 .gbar span{font-size:12px;font-weight:700}.gbar small{font-size:11px;color:var(--muted)}
 .glist{display:flex;flex-direction:column;gap:6px}
 .grow2{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.6fr) auto;gap:4px 12px;align-items:center;text-align:left;width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 12px;color:inherit;font:inherit;cursor:pointer}
@@ -7304,17 +7304,16 @@ function gHoje(){
   const eco=sep.filter(isEco).length;
   return `<div class="gkpis">
       ${gKpi("Entraram hoje", entr.length, `${entr.filter(isEco).length} e-commerce · ${entr.length-entr.filter(isEco).length} pré-vendas`)}
-      <button class="gk gkbtn" data-gcarr aria-expanded="${!!state.gCarr}"><small>Separados hoje</small><b class="tnum">${sep.length}</b><span>${sep.reduce((t,o)=>t+gPieces(o),0)} peças<em>${state.gCarr?"Fechar ▴":"Por transportadora ▾"}</em></span></button>
+      ${gKpi("Separados hoje", sep.length, `${sep.reduce((t,o)=>t+gPieces(o),0)} peças`)}
       ${gKpi("Tempo médio de separação", avg(tms)==null?"—":fmtDur(avg(tms)).replace(/ \d+s$/,""), "do início ao fim, por pedido")}
       ${gKpi("Espera média na fila", avg(wait)==null?"—":fmtDur(avg(wait)).replace(/ \d+s$/,""), "da entrada ao início")}
       ${gKpi("Na fila agora", fila.length, fila.length?`mais antigo há ${gAgo(oldest)}`:"fila zerada", fila.length && now-oldest>2*G_H?"bad":"")}
       ${gKpi("Alertas", crit+warn, crit?`${crit} crítico(s)`:"nenhum crítico", crit?"bad":warn?"warn":"ok")}
     </div>
-    ${state.gCarr?gCarrHTML():""}
     <div class="ggrid">
-      <section class="panel"><h3>Separados por hora · hoje</h3>
+      ${state.gSepV==="transp" ? `<section class="panel gwide"><div class="gbarh"><h3>Separados por transportadora</h3>${gSepMenu()}</div>${gCarrHTML()}</section>` : `<section class="panel"><div class="gbarh"><h3>Separados por hora · hoje</h3>${gSepMenu()}</div>
         <div class="gbars" role="img" aria-label="Pedidos separados por hora hoje">${hours.map(x=>`<div class="gbar ${x.h===curH?"now":""}"><span class="tnum">${x.n||""}</span><i style="height:${Math.round(x.n/mx*100)}%"></i><small>${x.h}h</small></div>`).join("")}</div>
-        <p class="hint">${sep.length?`${eco} e-commerce e ${sep.length-eco} pré-vendas separados hoje.`:"Nenhum pedido separado hoje ainda."}</p></section>
+        <p class="hint">${sep.length?`${eco} e-commerce e ${sep.length-eco} pré-vendas separados hoje.`:"Nenhum pedido separado hoje ainda."}</p></section>`}
       <section class="panel"><h3>Agora na operação</h3>
         <div class="gnow">${gKpi("Em separação", doing.length)}${gKpi("Na mesa", mesa.length, "", mesa.some(o=>now-(o.atMesaAt||now)>2*G_H)?"warn":"")}${gKpi("Finalizados hoje", pronto.length)}${gKpi("Colmeias ocupadas", `${hiveN}/${HIVE.length}`)}${gKpi("Notas recebidas hoje", nfR.length, nfR.filter(n=>n.received.div).length?`${nfR.filter(n=>n.received.div).length} com divergência`:"")}</div>
         <div class="eyebrow" style="margin-top:12px">Quem está separando</div>
@@ -7326,11 +7325,13 @@ function gHoje(){
 }
 /* Hoje → card "Separados hoje": separações por transportadora, por hora do dia ou dia da semana, com o pico de cada uma */
 function gCarrName(o){ const t=(transpOf(o)||"").trim(); if(t) return t; return o.naLoja ? "Cliente na loja" : o.retira ? "Retira na loja" : "Sem transportadora"; }
+function gSepMenu(){ const v=state.gSepV==="transp"?"transp":"hora";
+  return `<div class="seg" role="tablist" aria-label="Visão">${[["hora","Por hora"],["transp","Por transportadora"]].map(([k,t])=>`<button role="tab" data-gsepv="${k}" aria-pressed="${v===k}">${t}</button>`).join("")}</div>`; }
 function gCarrHTML(){
-  const days=state.gCarrDays||1, v=days>1 && state.gCarrV==="dia" ? "dia" : "hora", since=gSince(days), R={};
+  const days=state.gCarrDays||1, v=days>1 && state.gCarrV==="dia" ? "dia" : "hora", since=gSince(days), R={}, who=state.gCarrWho||"", ppl=new Set();
   ORDERS.filter(o=>o.status!=="excluido").forEach(o=>{
-    const runs=[...(o.etapas||[]).filter(e=>e.pickedBy).map(e=>e.pickedAt), ...(o.pickedBy?[o.pickedAt]:[])];
-    runs.forEach(t=>{ if(!(t>=since)) return; const nm=gCarrName(o), k=normTx(nm), d=new Date(t);
+    const runs=[...(o.etapas||[]).filter(e=>e.pickedBy).map(e=>[e.pickedAt,e.pickedBy]), ...(o.pickedBy?[[o.pickedAt,o.pickedBy]]:[])];
+    runs.forEach(([t,by])=>{ if(!(t>=since)) return; ppl.add(by); if(who && by!==who) return; const nm=gCarrName(o), k=normTx(nm), d=new Date(t);
       const r=(R[k] ||= {nm, n:0, c:{}}); r.n++; const c= v==="dia" ? d.getDay() : d.getHours(); r.c[c]=(r.c[c]||0)+1; });
   });
   const rows=Object.values(R).sort((a,b)=>b.n-a.n || a.nm.localeCompare(b.nm)), tot=rows.reduce((t,r)=>t+r.n,0);
@@ -7346,12 +7347,14 @@ function gCarrHTML(){
     return `<tr class="${cls||""}"><td class="l" title="${esc(r.nm)}">${lab}${p.mx?`<small class="pkm">Pico ${p.txt}</small>`:""}</td>${cols.map(c=>{ const n=r.c[c.k]||0, a=n?Math.round(14+76*n/p.mx):0;
       return `<td class="c tnum ${n?"":"z"} ${n&&n===p.mx?"pk":""}" style="--a:${a}%" title="${esc(r.nm)} · ${c.t}: ${n} separação(ões)">${n||"·"}</td>`; }).join("")}<td class="t tnum">${r.n}</td><td class="pkt">${p.txt}${p.sub?`<small>${p.sub}</small>`:""}</td></tr>`; };
   const seg=(list,cur,attr)=>`<div class="seg" role="group">${list.map(([k,t])=>`<button ${attr}="${k}" aria-pressed="${cur===k}">${t}</button>`).join("")}</div>`;
-  return `<section class="panel"><div class="gbarh"><h3>Separados por transportadora · ${days===1?"hoje":`últimos ${days} dias`}</h3>
-      <div class="gcartools">${seg([[1,"Hoje"],[7,"7 dias"],[30,"30 dias"]],days,"data-gcdays")}${days>1?seg([["hora","Hora do dia"],["dia","Dia da semana"]],v,"data-gcv"):""}</div></div>
+  if(who) ppl.add(who); const people=[...ppl].filter(Boolean).sort((a,b)=>gName(a).localeCompare(gName(b)));
+  return `<div class="gcartools">${seg([[1,"Hoje"],[7,"7 dias"],[30,"30 dias"]],days,"data-gcdays")}${days>1?seg([["hora","Hora do dia"],["dia","Dia da semana"]],v,"data-gcv"):""}
+      <select class="tin" id="gCarrWho" aria-label="Separador"><option value="">Todos os separadores</option>${people.map(id=>`<option value="${esc(id)}" ${who===id?"selected":""}>${esc(gName(id))}</option>`).join("")}</select></div>
+    <p class="hint" style="margin:0">${tot} separação(ões) ${days===1?"hoje":`nos últimos ${days} dias`}${who?` por <b>${esc(gName(who))}</b>`:""}.</p>
     ${rows.length ? `<div class="gtablewrap"><table class="gcar"><thead><tr><th class="l">Transportadora</th>${cols.map(c=>`<th>${c.t}</th>`).join("")}<th>Total</th><th style="text-align:left;padding-left:6px">${v==="dia"?"Dia de pico":"Horário de pico"}</th></tr></thead>
       <tbody>${rows.map(r=>row(r)).join("")}${rows.length>1?row(all,"all"):""}</tbody></table></div>`
-      : `<p class="hint">Nenhum pedido separado ${days===1?"hoje":"no período"}.</p>`}
-    <p class="hint">Cada célula é o número de separações concluídas ${v==="dia"?"naquele dia da semana":"naquela hora"}. A cor é relativa a cada transportadora: o tom mais forte e o contorno marcam o pico dela. Pedidos em 2 envios contam uma vez por envio.</p></section>`;
+      : `<p class="hint">Nenhum pedido separado ${days===1?"hoje":"no período"}${who?" por este separador":""}.</p>`}
+    <p class="hint">Cada célula é o número de separações concluídas ${v==="dia"?"naquele dia da semana":"naquela hora"}. A cor é relativa a cada transportadora: o tom mais forte e o contorno marcam o pico dela. Pedidos em 2 envios contam uma vez por envio.</p>`;
 }
 /* Hoje: pedidos separados conferidos por leitura do EAN x por OK, e bipagens incorretas */
 function gConfOf(o){ let ean=0, end=0, off=0; (o.res||[]).forEach(r=>{ if(!r || r.status==="miss" || r.status==="pend") return; if(EAN_HOW(r.how)) ean++; else if(r.how==="local") end++; if(howOff(o,r)) off++; });
@@ -7440,7 +7443,8 @@ function renderGestao(){
   app.querySelectorAll(".gev .gevt").forEach(t=>{ if(t.scrollWidth>t.clientWidth+1) t.classList.add("cut");
     t.onclick=e=>{ const row=t.closest(".gev"); if(!t.classList.contains("cut") && !row.classList.contains("xo")) return; e.stopPropagation(); row.classList.toggle("xo"); }; });
   app.querySelectorAll("[data-gdays]").forEach(b=>b.onclick=()=>{ state.gDays=+b.dataset.gdays; state.pg && (state.pg.gact=1); render(); });
-  app.querySelectorAll("[data-gcarr]").forEach(b=>b.onclick=()=>{ state.gCarr=!state.gCarr; render(); });
+  app.querySelectorAll("[data-gsepv]").forEach(b=>b.onclick=()=>{ state.gSepV=b.dataset.gsepv; render(); });
+  const cw=document.getElementById("gCarrWho"); if(cw) cw.onchange=()=>{ state.gCarrWho=cw.value; render(); };
   app.querySelectorAll("[data-gcdays]").forEach(b=>b.onclick=()=>{ state.gCarrDays=+b.dataset.gcdays; render(); });
   app.querySelectorAll("[data-gcv]").forEach(b=>b.onclick=()=>{ state.gCarrV=b.dataset.gcv; render(); });
   app.querySelectorAll("[data-gconf]").forEach(b=>b.onclick=()=>{ state.gConf=b.dataset.gconf; render(); });
