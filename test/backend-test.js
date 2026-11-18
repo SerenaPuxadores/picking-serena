@@ -178,6 +178,13 @@ document.documentElement.classList.add("ps-test"); // no teste os botões "Simul
       return { saved:true };
     }
   };
+  /* liberação do gestor (mesma regra das funções liberacao_*; na versão de teste a senha fica neste navegador) */
+  window.psLib = {
+    async status(){ return !!DB.libPw; },
+    async set(v){ if(String(v||"").length<4) throw new Error("A senha precisa ter pelo menos 4 caracteres."); DB.libPw=v; save(); return true; },
+    async check(v){ if(!DB.libPw) return { ok:false, error:"O administrador ainda não definiu a senha de liberação (Usuários → Configuração)." };
+      return v===DB.libPw ? { ok:true } : { ok:false, error:"Senha incorreta." }; }
+  };
   /* painel do showroom sem login (mesma regra da função showroom_feed) */
   const SR_KEY = (location.hash.match(/^#showroom=([A-Za-z0-9_-]{16,})$/) || [])[1] || null;
   window.psShowroom = {

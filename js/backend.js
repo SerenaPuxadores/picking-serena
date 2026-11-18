@@ -39,6 +39,12 @@
     feed: () => rpcJ("showroom_feed", { p_key: SR_KEY }),
     link: rotate => rpcJ("showroom_key", { p_rotate: !!rotate })
   };
+  /* Liberação do gestor: produto bipado que não pertence ao pedido (senha conferida no servidor, com hash) */
+  window.psLib = {
+    check: senha => rpcJ("liberacao_check", { p_senha: senha }),
+    status: () => rpcJ("liberacao_status", {}),
+    set: senha => rpcJ("liberacao_set", { p_senha: senha })
+  };
   if(HV_TOKEN || RC_TOKEN || SR_KEY){ window.claude = { use: async () => null }; return; } // sem tela de login: só a conferência pelo link / o painel
 
   let session = null, profile = null, readyResolve;
