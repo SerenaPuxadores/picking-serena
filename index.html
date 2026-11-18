@@ -3691,7 +3691,7 @@ function orderTimeline(o){
   (o.restarts||[]).forEach(r=>add(r.at, `Separação reiniciada${r.done?` (${r.done} item(ns) já coletados voltaram a zero)`:""}`, r.by, "warn"));
   if(o.startedAt) add(o.startedAt, "Separação iniciada", o.startedBy);
   (o.bipErr||[]).forEach(e=>add(e.at, `Bipagem incorreta · item ${e.cod}: ${e.txt}`, e.by, "bad"));
-  (o.libs||[]).forEach(e=>add(e.at, `Liberado com senha do gestor · item ${e.cod}: bipou ${e.pc}${e.pn?" · "+e.pn:""} (não pertence ao pedido)`, e.by, "warn"));
+  (o.libs||[]).forEach(e=>add(e.at, `Liberado com senha do gestor · item ${e.cod}: OK sem ler o EAN (código bipado: ${e.v})`, e.by, "warn"));
   if(o.pickedAt && o.conferidoLocal) add(o.pickedAt, "Conferido no local, peça por peça (cliente na loja)", o.pickedBy, "ok");
   else if(o.pickedAt && o.pickedAtAprox) add(o.pickedAt, "Separação concluída e finalizada na mesa · antes desta hora (registro original perdido)", o.pickedBy, "ok");
   else if(o.pickedAt) add(o.pickedAt, `Separação concluída${o.startedAt&&o.pickedAt>o.startedAt?` · picking ${fmtDur(o.pickedAt-o.startedAt).replace(/ \d+s$/,"")}`:""}`, o.pickedBy, "ok");
@@ -3731,9 +3731,9 @@ function bipItemsHTML(o){
     const t=x.at || (st!=="pend" && st!=="enc" ? lh?.at : 0), who=x.by || lh?.by || (st!=="pend"&&st!=="enc" ? o.pickedBy : "");
     const chip = st==="enc" ? `<span class="bipst s-enc">Encomenda</span>` : st==="ok" ? `<span class="bipst s-ok">✓ ${x.got||need}/${need}</span>` : st==="part" ? `<span class="bipst s-part">${x.got||0}/${need}</span>` : st==="miss" ? `<span class="bipst s-miss">Falta 0/${need}</span>` : `<span class="bipst s-pend">0/${need}</span>`;
     const det=[loc ? (lh && x.how!=="local" ? `${loc} bipado` : loc) : (st==="enc"?"":"sem endereço"),
-      x.how==="peca" ? `EAN lido peça por peça (${x.bips||x.got})` : x.how==="conta" ? "EAN lido + contagem" : x.how==="local" ? (eanExpected(o) ? "endereço + OK, sem ler o EAN (fora do padrão)" : "endereço bipado + OK") : x.how==="manual" && st!=="miss" ? "OK sem bipar endereço nem produto (fora do padrão)" : "",
+      x.how==="peca" ? `EAN lido peça por peça (${x.bips||x.got})` : x.how==="conta" ? "EAN lido + contagem" : x.how==="lib" ? `🔓 liberado pelo gestor, sem ler o EAN · ${x.lib?.cod?"código digitado":"OK"} (EAN bipado: ${x.lib?.v||"?"})` : x.how==="local" ? (eanExpected(o) ? "endereço + OK, sem ler o EAN (fora do padrão)" : "endereço bipado + OK") : x.how==="manual" && st!=="miss" ? "OK sem bipar endereço nem produto (fora do padrão)" : "",
       (()=>{ const n=(o.bipErr||[]).filter(e=>e.i===i).length; return n ? `⚠ ${n} bip(s) incorreto(s)` : ""; })(),
-      x.lib ? `🔓 liberado pelo gestor: bipou ${x.lib.pc}` : "",
+
       x.spot ? `na ${spotName(x.spot)}` : "", enc && need ? `${enc} pç encomenda` : ""].filter(Boolean).join(" · ");
     return `<div class="bipr s-${st}"><span class="mono">${esc(it.code)}</span><span class="bipn">${esc(it.name||"")}${det?`<small>${esc(det)}</small>`:""}</span>${chip}<span class="bipw">${t?`<time datetime="${new Date(t).toISOString()}" title="${esc(full(t))}">${hm(t)}</time>`:"<i>—</i>"}${who?`<small>${esc(uname(who).split(" ")[0])}</small>`:""}</span></div>`; }).join("");
   return `<div class="bipit"><div class="bipt"><b>Itens bipados</b><span class="tnum">${refOk}/${refs} ref. · ${pcsOk}/${pcs} pç</span></div>${rows}</div>`;
@@ -4840,7 +4840,7 @@ function taskCard(it){
     </div>`;
   if(state.phase==="qty") return `
     <div class="task">
-      <div class="ok-line"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Produto confirmado</div>
+      <div class="ok-line"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>${libOn(ORDERS.find(x=>x.id===state.oid), it) ? `🔓 Liberado pelo gestor · digite o código ${esc(it.code)} na barra ou confira e toque em Confirmar` : "Produto confirmado"}</div>
       ${head}
       <div class="row">
         <div class="stepper"><button id="minus" aria-label="Diminuir">−</button><output id="q" class="tnum">${state.count}</output><button id="plus" aria-label="Aumentar">+</button></div>
@@ -4951,7 +4951,7 @@ function updateCount(){
 function commit(status){
   const {o, r, pl, it} = cur();
   r[it.i] = {status, got: state.count, ...(state.bigItem && status!=="miss" ? {spot:state.bigItem} : {}),
-    at:Date.now(), by:ME.id||"", ...(it.loc?{lc:code(it.loc)}:{}), ...(state.libOk && state.libOk.oid===o.id && state.libOk.i===it.i ? {lib:{pc:state.libOk.pc, v:state.libOk.v, at:state.libOk.at}} : {}), how: state.phase==="unit"?"peca":state.bipN?"conta":state.bipLoc?"local":"manual", ...(state.bipN?{bips:state.bipN, t0:state.bipT0}:{})};
+    at:Date.now(), by:ME.id||"", ...(it.loc?{lc:code(it.loc)}:{}), ...(libOn(o,it) ? {lib:{v:state.libOk.v, at:state.libOk.at, ...(state.libOk.cod?{cod:state.libOk.cod}:{})}} : {}), how: libOn(o,it)?"lib":state.phase==="unit"?"peca":state.bipN?"conta":state.bipLoc?"local":"manual", ...(state.bipN?{bips:state.bipN, t0:state.bipT0}:{})};
   state.bipN=0; state.bipT0=0; state.bipLoc=0; state.libOk=null;
   patchOrder(o.id, {res:r});
   toast(status==="ok" ? `Item coletado · ${it.need} pç` : status==="part" ? `Coleta parcial · ${state.count} de ${it.need}` : "Falta registrada");
@@ -5194,7 +5194,7 @@ function handleScan(raw){
   }
   if(state.view!=="pick") return;
   const c = cur(); if(!c) return; const {o, it} = c;
-  const isLoc = LOC_RE.test(v), isProd = isItem(it,v) || libMatch(o, it, v);
+  const isLoc = LOC_RE.test(v), isProd = isItem(it,v);
   if(!isProd && !isLoc && state.phase!=="tray"){ // achou um item que tinha ficado em falta: volta para ele
     const r0=res(o), pl0=pickList(o), k=pl0.findIndex((x,j)=>j!==state.idx && (r0[x.i].status==="miss"||r0[x.i].status==="part") && (isItem(x,v)));
     if(k>=0 && pickDirect(o)){ feedback(true); state.idx=k; state.phase="unit"; state.count=Math.min(pl0[k].need,(r0[pl0[k].i].got||0)+1); if(state.count>=pl0[k].need){ commit("ok"); return; } render(); scrollTo({top:0,behavior:"smooth"});
@@ -5215,7 +5215,7 @@ function handleScan(raw){
       return; }
     feedback(false);
     if(isProd){ logBipErr(o, it, v, "ordem", `Bipou o produto antes do endereço ${code(it.loc)}`); return setMsg("Bipe primeiro a etiqueta do endereço.","bad"); }
-    { const [k,t]=isLoc?["end",`Endereço errado: ${v} (certo: ${code(it.loc)})`]:bipErrTxt(v,it,o); logBipErr(o, it, v, k, t); if(k==="outro_prod") return openNotInOrder(o, it, v); }
+    { const [k,t]=isLoc?["end",`Endereço errado: ${v} (certo: ${code(it.loc)})`]:bipErrTxt(v,it,o); logBipErr(o, it, v, k, t); if(LIB_KINDS.includes(k)) return openNotInOrder(o, it, v, k); }
     return setMsg(isLoc ? `Endereço errado: ${v}. Vá para ${code(it.loc)}.` : `Código ${v} não é um endereço.`, "bad");
   }
   if(isLoc && !it.loc){ feedback(false); return setMsg(`Este produto não tem local cadastrado. Bipe a peça.`,"bad"); }
@@ -5236,6 +5236,7 @@ function handleScan(raw){
     feedback(true); state.bigItem=v; render(); setMsg(`Este item vai na ${mesaName(v)}. `+(state.phase==="qty"?"Conte e confirme.":"Bipe o produto."),"good"); return;
   }
   if(isProd && state.phase!=="qty"){ state.bipN=(state.bipN||0)+1; if(!state.bipT0) state.bipT0=Date.now(); }
+  if(isProd && state.phase==="qty" && libOn(o,it)){ feedback(true); state.libOk.cod=v; return setMsg(`Código ${v} conferido. Confira ${it.need} pç e confirme.`,"good"); }
   if(isProd && pickDirect(o)){ // conferência peça por peça
     if(state.phase!=="unit"){ state.phase="unit"; state.count=0; }
     state.count=Math.min(it.need, state.count+1); feedback(true);
@@ -5249,30 +5250,33 @@ function handleScan(raw){
   }
   feedback(false);
   if(isLoc) return setMsg(`Você já está em ${code(it.loc)}. Agora bipe a peça.`,"bad");
-  { const [k,t]=bipErrTxt(v,it,o); logBipErr(o, it, v, k, t); if(k==="outro_prod") return openNotInOrder(o, it, v); }
+  { const [k,t]=bipErrTxt(v,it,o); logBipErr(o, it, v, k, t); if(LIB_KINDS.includes(k)) return openNotInOrder(o, it, v, k); }
   const enc = o.items.find(x=>isItem(x,v) && x.qtyEnc>=x.qty);
   const other = o.items.find(x=>isItem(x,v));
   setMsg(enc ? `${enc.name} é sob encomenda. Não separar.` : other ? `Produto de outro item: ${other.name}. Este item ${it.loc?"está em "+code(it.loc):"é o "+it.code}.` : `Código ${v} não é deste produto.`, "bad");
 }
-/* Produto bipado que NÃO pertence ao pedido: pop-up no meio da tela.
-   Fechar → bipa o produto certo. Liberar com senha → o gestor digita a senha de liberação (conferida no servidor)
-   e o produto bipado passa a valer para o item atual (fica no histórico e em Itens bipados). */
-const libMatch = (o, it, v) => !!state.libOk && state.libOk.oid===o.id && state.libOk.i===it.i && (state.libOk.v===v || (()=>{ const p=prodByCode(v); return !!p && p.code===state.libOk.pc; })());
-function openNotInOrder(o, it, v){
+/* Produto bipado que NÃO é o do item (EAN de outro produto, de outro item ou não cadastrado): pop-up no meio da tela.
+   Fechar → bipa de novo. Liberar com senha → o gestor digita a senha de liberação (conferida no servidor) e o separador
+   confirma o item com OK, sem ler o EAN (casos de EAN errado ou repetido na embalagem). Fica no histórico e em Itens bipados. */
+const LIB_KINDS = ["outro_prod","outro_item","desconhecido"];
+const libOn = (o, it) => !!state.libOk && state.libOk.oid===o?.id && state.libOk.i===it?.i;
+function openNotInOrder(o, it, v, k){
   if(document.querySelector(".modal.nio")) return;
-  const p=prodByCode(v)||{code:v, name:""};
-  setMsg(`${p.code} não pertence a este pedido.`,"bad");
+  const p=prodByCode(v), other=o.items.find(x=>x!==it && isItem(x,v));
+  const what = k==="outro_item" && other ? `<b class="mono">${esc(other.code)}</b> · ${esc(other.name||"")}<br><small>outro item deste pedido</small>`
+    : p ? `<b class="mono">${esc(p.code)}</b>${p.name?" · "+esc(p.name):""}` : `Código <b class="mono">${esc(v)}</b> não cadastrado`;
+  setMsg(`Código ${v} não é do item ${it.code}.`,"bad");
   const ov=document.createElement("div"); ov.className="modal nio"; scanbar.hidden=true;
   const close=()=>{ ov.remove(); render(); setMsg(`Bipe o produto certo: ${it.code}`,"info"); };
   const step1=()=>{ ov.innerHTML=`<div class="mbox mbad" role="alertdialog" aria-modal="true" aria-label="Produto não pertence ao pedido">
       <h2><span class="mbadic" aria-hidden="true">!</span>Produto não pertence ao pedido</h2>
-      <p><b class="mono">${esc(p.code)}</b>${p.name?" · "+esc(p.name):""}</p>
+      <p>Bipado: ${what}</p>
       <p>Bipe o produto certo: <b class="mono">${esc(it.code)}</b></p>
       <div class="mact"><button class="btn ghost" id="nioLib">🔓 Liberar com senha</button><button class="btn primary" id="nioOk">Fechar</button></div></div>`;
     ov.querySelector("#nioOk").onclick=close; ov.querySelector("#nioLib").onclick=step2; ov.querySelector("#nioOk").focus(); if(!window.psLib) ov.querySelector("#nioLib").remove(); };
   const step2=()=>{ ov.innerHTML=`<div class="mbox" role="dialog" aria-modal="true" aria-label="Liberação do gestor">
       <h2>Liberação do gestor</h2>
-      <p>Aceitar <b class="mono">${esc(p.code)}</b> no lugar de <b class="mono">${esc(it.code)}</b> no pedido #${esc(o.num)}.</p>
+      <p>Confirmar o item <b class="mono">${esc(it.code)}</b>${it.name?" · "+esc(it.name):""} com OK, <b>sem ler o EAN</b>.</p>
       <input class="tin" id="nioPw" type="password" placeholder="Senha de liberação" autocomplete="off" style="width:100%;box-sizing:border-box">
       <div class="merr" id="nioErr"></div>
       <div class="mact"><button class="btn ghost" id="nioBack">Voltar</button><button class="btn primary" id="nioGo">Liberar</button></div></div>`;
@@ -5282,18 +5286,19 @@ function openNotInOrder(o, it, v){
       go.disabled=true; go.textContent="Conferindo…"; err.textContent="";
       try{ const r=await window.psLib.check(pw.value);
         if(!r?.ok){ err.textContent=r?.error||"Senha incorreta."; pw.value=""; pw.focus(); go.disabled=false; go.textContent="Liberar"; return; }
-        ov.remove(); acceptLib(o, it, v, p);
+        ov.remove(); acceptLib(o, it, v);
       }catch(e){ err.textContent="Sem conexão. Tente de novo."; go.disabled=false; go.textContent="Liberar"; } };
     go.onclick=send; pw.onkeydown=e=>{ if(e.key==="Enter"){ e.preventDefault(); send(); } }; setTimeout(()=>pw.focus(),30); };
-  step1(); if(!window.psLib) ov.querySelector("#nioLib")?.remove(); document.body.appendChild(ov); ov.querySelector("#nioOk")?.focus();
+  step1(); document.body.appendChild(ov); ov.querySelector("#nioOk")?.focus();
 }
-function acceptLib(o, it, v, p){
+function acceptLib(o, it, v){
   const now=Date.now(), x=ORDERS.find(y=>y.id===o.id)||o;
-  state.libOk={oid:o.id, i:it.i, v, pc:p.code, at:now};
-  const e={at:now, by:ME.id||"", i:it.i, cod:it.code, v:String(v).slice(0,40), pc:p.code, pn:String(p.name||"").slice(0,80)};
+  state.libOk={oid:o.id, i:it.i, v:String(v).slice(0,40), at:now};
+  const e={at:now, by:ME.id||"", i:it.i, cod:it.code, v:String(v).slice(0,40)};
   const l=[...(x.libs||[]), e].slice(-200); x.libs=l; patchOrder(o.id,{libs:l});
-  toast(`Liberado pelo gestor · ${p.code}`);
-  render(); handleScan(v); // agora o produto conta como o item atual
+  if(state.phase==="loc" && it.loc) logLocScan(o, it.loc);
+  state.phase="qty"; state.count=it.need; feedback(true); render();
+  toast("Liberado pelo gestor"); setMsg(`Liberado. Digite o código ${it.code} na barra ou confira ${it.need} pç e confirme.`,"good");
 }
 let wedgeT0=0, wedgeN=0, autoT, inT0=0;
 /* Para onde vai um código lido: o teste do coletor (se estiver aberto) ou a tela atual */
@@ -6636,7 +6641,7 @@ function renderUsuarios(){
         <label class="chk"><input type="checkbox" id="cfgTray" ${CONFIG.useTray?"checked":""}> Usar bandeja (bipar no 1º item e desvincular na mesa depois da conferência)</label>
         <p class="hint">Uma bandeja vinculada não pode ser usada em outro pedido até ser desvinculada.</p>
         ${window.psLib && ME.isOwner ? `<h3>Senha de liberação do gestor</h3>
-        <p class="hint">Quando o separador bipa um produto que <b>não pertence ao pedido</b>, aparece um aviso no meio da tela. Para aceitar mesmo assim, o gestor digita esta senha. A senha fica guardada no servidor (com segurança) e não aparece mais na tela. ${state.libCfg==null?"":state.libCfg?`<span class="al-ok">Definida</span>`:`<b style="color:var(--bad)">Ainda não definida</b>`}</p>
+        <p class="hint">Quando o separador bipa um produto que <b>não pertence ao pedido</b>, aparece um aviso no meio da tela. Se a peça é a certa mas o EAN da embalagem está errado ou repetido, o gestor digita esta senha e o separador confere o item sem ler o EAN (digitando o código do produto ou com OK). A senha fica guardada no servidor (com segurança) e não aparece mais na tela. ${state.libCfg==null?"":state.libCfg?`<span class="al-ok">Definida</span>`:`<b style="color:var(--bad)">Ainda não definida</b>`}</p>
         <div class="cfgrow"><input class="tin" id="cfgLibPw" type="password" placeholder="${state.libCfg?"Nova senha (mín. 4)":"Senha (mín. 4)"}" autocomplete="new-password" style="width:200px"><button class="mini" id="cfgLibGo">${state.libCfg?"Trocar senha":"Salvar senha"}</button></div>` : ""}
         <h3>Pedido parado na colmeia</h3>
         <p class="hint">Pedido pronto (aguardando o cliente retirar ou o envio) que está na colmeia há mais tempo que isto aparece na TV com aviso de voz a cada 5 minutos, até alguém bipar a colmeia e confirmar se ele ainda está lá. Use 0 para desligar.</p>
