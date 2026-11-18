@@ -5914,7 +5914,7 @@ function vincUndo(){
 }
 
 /* ---- Endereços ---- */
-function armBarHTML(){ const arm=state.arm||ARM_EST, canNew=can("estoque")||can("usuarios");
+function armBarHTML(){ const arm=state.arm||ARM_EST, canNew=can("usuarios"); // fica em config/picking, que só o administrador grava
   return `<div class="armbar"><span class="eyebrow">Local de armazenamento</span><div class="seg armseg">${armList().map(a=>`<button data-arm="${esc(a.id)}" aria-pressed="${a.id===arm}">${esc(a.nome)}<small class="tnum">${ruas(a.id).length} rua(s)</small></button>`).join("")}</div>
     ${canNew?`<button class="mini" id="armNew">+ Novo local de armazenamento</button>`:""}${arm!==ARM_EST && canNew?`<button class="mini" id="armRen">Renomear</button>${!ruas(arm).length?`<button class="mini" id="armDel">${state.armDel?"Toque de novo para excluir":"Excluir"}</button>`:""}`:""}</div>`; }
 /* próxima rua livre para um local novo: letra do nome (ex.: Marketing → M), senão a primeira letra livre do fim do alfabeto */
