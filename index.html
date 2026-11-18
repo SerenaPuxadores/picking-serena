@@ -546,6 +546,17 @@ details.cpcard summary{display:flex;justify-content:space-between;align-items:ce
 .loc-parts small{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .loc-parts b{font-family:var(--display);font-size:20px;line-height:1.1}
 
+.armbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:4px 0 12px}
+.armbar .eyebrow{width:100%}
+.armseg button{display:flex;flex-direction:column;align-items:flex-start;line-height:1.2}
+.armseg button small{font-size:11px;opacity:.7;font-weight:500}
+.armtag{display:inline-block;background:color-mix(in srgb,var(--accent,#F2A900) 18%,transparent);color:var(--ink);border-radius:999px;padding:2px 9px;font-weight:700;letter-spacing:0;text-transform:none}
+.armtag.big{font-size:14px;margin:2px 0 6px}
+.armcard{display:flex;gap:12px;align-items:center;padding:14px}
+.armcard .armpin{font-size:30px}
+.armcard .armt{display:block;font-size:18px;margin:2px 0}
+.armcard span{font-size:14px;color:var(--muted)}
+.armmini{padding:12px;font-size:14px}
 .map-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px;margin-top:12px;position:relative}
 .map-card svg{display:block;width:100%;height:auto;max-width:100%;margin:0 auto}
 .map-tools{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:2px 4px 8px}
@@ -1406,7 +1417,16 @@ const inBlock = (b,x) => b.r===x.r && b.l===x.l && b.t===x.t && x.n>=b.n1 && x.n
 function parseLoc(s){ const x=parseCode(s); return x && Object.values(BLOCKS).some(b=>inBlock(b,x)) ? x : null; } // válido e cadastrado
 function blockLocs(b){ const out=[]; for(let n=b.n1;n<=b.n2;n++) for(let ci=colIdx(b.c1);ci<=colIdx(b.c2);ci++) out.push(`R${b.r}-L${b.l}-${b.t}-${n}.${colName(ci)}`); return out; }
 function allLocs(){ return Object.values(BLOCKS).flatMap(blockLocs).sort((a,b)=>{ const x=parseCode(a), y=parseCode(b); return ruaSort(x.r,y.r) || x.l.localeCompare(y.l) || x.n-y.n || x.ci-y.ci; }); }
-const ruas = () => [...new Set(Object.values(BLOCKS).map(b=>b.r))].sort(ruaSort);
+/* Locais de armazenamento: o Estoque principal (padrão, com o mapa 3D/2D) e outros criados pelo usuário
+   (ex.: Sala do Marketing, ponta de estoque). Cada estrutura (bloco) guarda o local em b.arm; sem arm = Estoque.
+   Uma rua pertence a um só local, então os endereços continuam únicos (ex.: RM-LA-COL-1.A na Sala do Marketing). */
+const ARM_EST = "est";
+const armList = () => [{id:ARM_EST, nome:"Estoque"}, ...(CONFIG.armazens||[])];
+const armName = id => armList().find(a=>a.id===(id||ARM_EST))?.nome || "Estoque";
+const blockArm = b => b?.arm || ARM_EST;
+const ruaArm = r => { const b=Object.values(BLOCKS).find(x=>x.r===r); return b ? blockArm(b) : null; };
+const locArm = l => { const x = typeof l==="string" ? parseCode(l) : l; return x ? (ruaArm(x.r) || ARM_EST) : ARM_EST; };
+const ruas = (arm) => [...new Set(Object.values(BLOCKS).filter(b=>!arm || blockArm(b)===arm).map(b=>b.r))].sort(ruaSort);
 const locType = lc => parseCode(lc)?.t || "";
 const fullLoc = lc => lc;
 function normLoc(s){ s=String(s||"").trim().toUpperCase().replace(/\s+/g,"-");
@@ -4048,7 +4068,7 @@ function mapRoute(a, b){ // caminho pelos corredores (a = item anterior ou null 
    Projeção afim: o piso inclina para trás e as estantes sobem; linhas retas continuam retas (a animação da rota funciona igual). */
 const MAP3D_KEY="ps-map3d";
 const map3d = () => { try{ const m=localStorage.getItem("ps-mapmode"); if(m) return m!=="2d"; return localStorage.getItem(MAP3D_KEY)!=="0"; }catch(e){ return true; } };
-function mapSVG(item, prevItem){ return mapSVG2D(item, prevItem); } // telas sem animação 3D (devolução, colmeia): planta 2D
+function mapSVG(item, prevItem){ if(item?.loc && locArm(item.loc)!==ARM_EST) return `<div class="armmini">📍 <b>${esc(armName(locArm(item.loc)))}</b> · fora do estoque</div>`; return mapSVG2D(item, prevItem); } // telas sem animação 3D (devolução, colmeia): planta 2D
 function mapSVG3D(item, prevItem){
   const M=MAP, l=item.loc, t=mapTarget(l), pv=prevItem?.loc ? mapTarget(prevItem.loc) : null;
   const SK=0.16, FS=0.8, ZR=26; // inclinação, encurtamento do piso e altura das estantes
@@ -4100,7 +4120,10 @@ function mapSVG3D(item, prevItem){
 const MAPMODE_KEY="ps-mapmode";
 const mapMode = () => { try{ const v=localStorage.getItem(MAPMODE_KEY); if(v) return v==="2d" ? "2d" : "nav"; return localStorage.getItem(MAP3D_KEY)==="0" ? "2d" : "nav"; }catch(e){ return "nav"; } }; // 3D (navegação) ou 2D
 /* Cartão do mapa (separação e Locais → Localizar): 3D de navegação ou 2D, o usuário escolhe no botão */
-function mapCardHTML(item, prev){ const m=mapMode();
+function armCardHTML(l){ return `<div class="map-card armcard"><div class="armpin" aria-hidden="true">📍</div><div><div class="eyebrow">Fora do estoque</div><b class="armt">${esc(armName(locArm(l)))}</b><span>Vá até a ${esc(armName(locArm(l)))} e procure o endereço <b class="mono">${esc(code(l))}</b>.</span></div></div>`; }
+function mapCardHTML(item, prev){ if(item?.loc && locArm(item.loc)!==ARM_EST) return armCardHTML(item.loc);
+  if(prev?.loc && locArm(prev.loc)!==ARM_EST) prev=null;
+  const m=mapMode();
   return `<div class="map-card" id="map">
       <button class="replay-ic map3dbtn" id="map3d" aria-label="Trocar o tipo de mapa (agora: ${m==="2d"?"2D":"3D"})" title="Trocar mapa: 3D ou 2D">${m==="2d"?"3D":"2D"}</button>
       <button class="replay-ic" id="replay" aria-label="Ver rota de novo" title="Ver rota de novo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></button>
@@ -4748,7 +4771,7 @@ const cur = () => { const o=ORDERS.find(x=>x.id===state.oid); if(!o) return null
 const scanCode = it => it.ean || it.code;
 const hasTray = o => !!o.tray && o.trayStatus==="separando";
 /* ---- Pedido parado na colmeia: pronto para retirar/enviar há mais de N dias (Administrador configura) ---- */
-const cfgData = () => ({useTray:CONFIG.useTray, binStacks:binStacks(), staleDays:CONFIG.staleDays??7});
+const cfgData = () => ({useTray:CONFIG.useTray, binStacks:binStacks(), staleDays:CONFIG.staleDays??7, armazens:CONFIG.armazens||[]});
 const staleRef = o => Math.max(+o.staleOkAt||0, +o.storedAt||0, +o.atMesaAt||0, +o.pickedAt||0) || +o.createdAt || 0;
 const staleAge = o => Math.floor((Date.now()-staleRef(o))/864e5);
 function staleOrders(){ const n=+(CONFIG.staleDays??7); if(!n) return [];
@@ -4885,7 +4908,7 @@ function renderPick(){
     ${state.phase==="tray" ? trayStepHTML(o, pl, r) : `
     <div class="steps">${pl.map((x,k)=>{ const s=r[x.i].status; return `<i class="${s==="ok"||s==="part"?"ok":s==="miss"?"miss":k===state.idx?"cur":""}"></i>`; }).join("")}</div>
     ${l ? `<div class="loc">
-      <div class="grow"><div class="eyebrow">Local</div>
+      <div class="grow"><div class="eyebrow">${locArm(l)!==ARM_EST ? `<span class="armtag">📍 ${esc(armName(locArm(l)))}</span>` : "Local"}</div>
         <div class="loc-code tnum">R${l.r}<span>-</span>L${l.l}<span>-</span><span class="ttag">${l.t}</span>${l.n}<span>.</span>${l.c}</div></div>
       ${elevSVG(l)}
     </div>` : `<div class="loc noloc">
@@ -5728,7 +5751,7 @@ function calorFace(t){ // metade da estante virada para o corredor do endereço 
 }
 function calorSVG(D){
   const M=MAP, cells={};
-  D.locs.forEach(e=>{ const t=mapTarget(e.L), f=t && calorFace(t); if(!f) return; const k=[f.r.x,f.r.y,f.r.w,f.r.h].map(n=>n.toFixed(1)).join(",");
+  D.locs.forEach(e=>{ if(locArm(e.L)!==ARM_EST) return; const t=mapTarget(e.L), f=t && calorFace(t); if(!f) return; const k=[f.r.x,f.r.y,f.r.w,f.r.h].map(n=>n.toFixed(1)).join(",");
     const g=cells[k] ||= {f, v:0, n:[]}; g.v+=e.v; g.n.push(e); });
   const list=Object.values(cells).sort((a,b)=>a.v-b.v), max=Math.max(1,...list.map(g=>g.v));
   const R=(r,cls)=>`<rect class="${cls}" x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="2"/>`;
@@ -5891,11 +5914,20 @@ function vincUndo(){
 }
 
 /* ---- Endereços ---- */
+function armBarHTML(){ const arm=state.arm||ARM_EST, canNew=can("estoque")||can("usuarios");
+  return `<div class="armbar"><span class="eyebrow">Local de armazenamento</span><div class="seg armseg">${armList().map(a=>`<button data-arm="${esc(a.id)}" aria-pressed="${a.id===arm}">${esc(a.nome)}<small class="tnum">${ruas(a.id).length} rua(s)</small></button>`).join("")}</div>
+    ${canNew?`<button class="mini" id="armNew">+ Novo local de armazenamento</button>`:""}${arm!==ARM_EST && canNew?`<button class="mini" id="armRen">Renomear</button>${!ruas(arm).length?`<button class="mini" id="armDel">${state.armDel?"Toque de novo para excluir":"Excluir"}</button>`:""}`:""}</div>`; }
+/* próxima rua livre para um local novo: letra do nome (ex.: Marketing → M), senão a primeira letra livre do fim do alfabeto */
+function armRuaSug(nome){ const used=new Set(Object.values(BLOCKS).map(b=>String(b.r)));
+  const ini=String(nome||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().replace(/\b(SALA|DO|DA|DE|DOS|DAS|LOCAL)\b/g,"").replace(/[^A-Z]/g,"");
+  for(const c of [...ini, ..."ZYXWVUTSRQPONMLKJIHGFEDC"]) if(!used.has(c)) return c; return ""; }
 function enderecosHTML(){
-  const rs = ruas(); if(!rs.includes(state.rua)) state.rua = rs[0] || 1;
+  if(!armList().some(a=>a.id===state.arm)) state.arm=ARM_EST;
+  const arm=state.arm;
+  const rs = ruas(arm); if(!rs.includes(state.rua)) state.rua = rs[0] || (arm===ARM_EST ? 1 : armRuaSug(armName(arm)) || 1);
   const r = state.rua, lado = state.lado || "A", sel = state.selLoc;
   const used = {}, cnt = {}; Object.values(PRODUCTS).forEach(p=>{ if(p.loc){ used[p.loc] ||= p; cnt[p.loc]=(cnt[p.loc]||0)+1; } });
-  const blocksHere = Object.entries(BLOCKS).filter(([,b])=>b.r===r && b.l===lado);
+  const blocksHere = Object.entries(BLOCKS).filter(([,b])=>b.r===r && b.l===lado && blockArm(b)===arm);
   // um lado pode ter gaveteiro, colmeia e bin ao mesmo tempo (ex.: R1 lado A): a grade mostra um tipo de cada vez
   const tiposHere = ["GAV","COL","BIN"].filter(t=>blocksHere.some(([,b])=>b.t===t));
   if(!tiposHere.includes(state.locTipo)) state.locTipo = tiposHere[0];
@@ -5910,8 +5942,8 @@ function enderecosHTML(){
         const t=cellAt(n,ci); if(!t) return `<div class="cell void"></div>`;
         const lc=code({r, l:lado, t, n, c:colName(ci)}), p=used[lc];
         return `<button class="cell ${p?"busy":""} ${sel===lc?"sel":""}" data-lc="${lc}" title="${lc}${p?" · "+esc(cnt[lc]>1?Object.values(PRODUCTS).filter(x=>x.loc===lc).map(x=>x.code).join(", "):p.name):""}"><span><em class="ty">${t}</em> ${n}.${colName(ci)}</span>${p?(cnt[lc]>1?`<b>${cnt[lc]} produtos</b>`:`<b>${esc(p.code)}</b>`):`<i>livre</i>`}</button>`; }).join(""); }).join("")}
-    </div></div>${cMax+1>3?`<div class="hint" style="margin-top:6px">Arraste para o lado para ver as colunas ${colName(3)} a ${colName(cMax)}.</div>`:""}` : `<div class="empty">Nenhum local cadastrado no lado ${lado} da rua R${r}. Crie a estrutura ao lado.</div>`;
-  return `<div class="cgrid">
+    </div></div>${cMax+1>3?`<div class="hint" style="margin-top:6px">Arraste para o lado para ver as colunas ${colName(3)} a ${colName(cMax)}.</div>`:""}` : `<div class="empty">${arm!==ARM_EST && !rs.length ? `<b>${esc(armName(arm))}</b> ainda não tem estrutura. Crie ao lado a colmeia e as caixas bin deste local (sugestão: rua <b>R${esc(String(r))}</b>, que não é usada no Estoque).` : `Nenhum local cadastrado no lado ${lado} da rua R${r}. Crie a estrutura ao lado.`}</div>`;
+  return `${armBarHTML()}<div class="cgrid">
     <section class="panel">
       <div class="filters" style="justify-content:space-between">
         <div class="ruas" style="grid-template-columns:repeat(${Math.max(1,Math.min(6,rs.length))},minmax(90px,1fr));flex:1">${rs.map(x=>`<button class="ruabtn" data-rua="${x}" aria-pressed="${x===r}"><b>Rua R${x}</b><small class="tnum">${countR(x)} ocupados</small></button>`).join("") || `<div class="empty">Nenhuma rua cadastrada.</div>`}</div>
@@ -5927,10 +5959,13 @@ function enderecosHTML(){
   </div>`;
 }
 function blockFormHTML(){
-  const f = state.bf || (state.bf = {r: state.rua||1, l: state.lado||"A", t:"GAV", n1:1, n2:4, c1:"A", c2:"F"});
+  const arm=state.arm||ARM_EST;
+  const f = state.bf || (state.bf = {r: state.rua||1, l: state.lado||"A", t: arm===ARM_EST?"GAV":"COL", n1:1, n2:4, c1:"A", c2:"F"});
+  f.arm = arm;
   const prev = blockPreview(f);
   return `<h2>Criar estrutura</h2>
-    <p class="hint">Cadastre um móvel ou bloco de locais de uma vez: escolha a rua, o lado, o tipo e a faixa de níveis e colunas.</p>
+    <div class="armtag big">📍 ${esc(armName(arm))}</div>
+    <p class="hint">Cadastre um móvel ou bloco de locais de uma vez: escolha a rua, o lado, o tipo e a faixa de níveis e colunas.${arm!==ARM_EST?` Os locais ficam na <b>${esc(armName(arm))}</b>, separados do Estoque. Use uma rua só deste local (ex.: <b>${esc(String(ruas(arm)[0]||armRuaSug(armName(arm))||"M"))}</b>).`:""}</p>
     <form id="bform" class="bform" autocomplete="off">
       <label>Rua<input class="tin mono" id="bf-r" maxlength="2" placeholder="1–99, A ou B" value="${esc(String(f.r))}" autocapitalize="characters"></label>
       <label>Lado<select class="tin" id="bf-l">${["A","B"].map(x=>`<option ${f.l===x?"selected":""}>${x}</option>`).join("")}</select></label>
@@ -5951,6 +5986,8 @@ function blockPreview(f){
   if(f.t!=="GAV" && (f.base==="gav" || (f.base==="col" && f.t==="BIN"))){ b.base=f.base; if(f.base==="gav"){ b.g1=String(f.g1||"A").toUpperCase(); b.g2=String(f.g2||f.g1||"A").toUpperCase();
     if(!/^[A-Z]{1,2}$/.test(b.g1)||!/^[A-Z]{1,2}$/.test(b.g2)||colIdx(b.g2)<colIdx(b.g1)) return {err:"Informe os gaveteiros de baixo (letras, ex.: D até E)."}; } }
   if(b.r===null) return {err:"Informe a rua: número (1 a 99) ou letra (A, B)."};
+  { const arm=f.arm||ARM_EST, ra=ruaArm(b.r); if(arm!==ARM_EST) b.arm=arm;
+    if(ra && ra!==arm) return {err:`A rua R${b.r} já é do local ${armName(ra)}. Use outra rua${arm!==ARM_EST?` (ex.: ${ruas(arm)[0]||armRuaSug(armName(arm))})`:""}.`}; }
   if(!(b.n1>=1 && b.n2>=b.n1 && b.n2<=99)) return {err:"Faixa de níveis inválida."};
   if(!/^[A-Z]{1,2}$/.test(b.c1) || !/^[A-Z]{1,2}$/.test(b.c2) || colIdx(b.c2)<colIdx(b.c1)) return {err:"Faixa de colunas inválida (letras, ex.: A até M)."};
   const locs = blockLocs(b);
@@ -5964,7 +6001,7 @@ function locPanelHTML(){
   const matches = q ? Object.values(PRODUCTS).filter(x=>fz(x.code+" "+x.name+" "+(x.ean||""), q)).sort((a,b)=>fzScore(b.code+" "+b.name,q)-fzScore(a.code+" "+a.name,q)).slice(0,8) : [];
   return `<div class="filters" style="justify-content:space-between"><h2>Local</h2><button class="mini" id="newBlock">+ Criar estrutura</button></div>
     <div class="store-code" style="font-size:30px">${lc}</div>
-    <div class="meta"><span>Rua R${l.r}</span><span>Lado ${l.l}</span><span>${LOC_TYPES[l.t]}</span><span>Nível ${l.n}</span><span>Coluna ${l.c}</span></div>
+    <div class="meta">${locArm(l)!==ARM_EST?`<span>📍 ${esc(armName(locArm(l)))}</span>`:""}<span>Rua R${l.r}</span><span>Lado ${l.l}</span><span>${LOC_TYPES[l.t]}</span><span>Nível ${l.n}</span><span>Coluna ${l.c}</span></div>
     ${locLabelHTML(locLabelData(lc))}
     ${ps.length?ps.map(x=>`<div class="qcard"><div class="eyebrow">${ps.length>1?"Produto nesta gaveta":"Produto neste local"}</div><div class="cl">${esc(x.name)}</div><div class="meta tnum"><span>Cód. ${esc(x.code)}</span><span>${x.ean?"EAN "+esc(x.ean):"sem EAN"}</span></div><div><button class="mini" data-unassign="${esc(x.code)}">Remover do local</button></div></div>`).join("")
       :`<div class="empty">Local livre.</div>`}
@@ -5975,6 +6012,12 @@ function locPanelHTML(){
     <div><button class="mini" id="printOne">Gerar etiqueta deste local (PDF)</button></div>`;
 }
 function bindEnderecos(){
+  app.querySelectorAll("[data-arm]").forEach(b=>b.onclick=()=>{ state.arm=b.dataset.arm; state.rua=null; state.selLoc=null; state.bf=null; state.armDel=false; render(); });
+  const an=document.getElementById("armNew"); if(an) an.onclick=()=>armEdit(null);
+  const ar=document.getElementById("armRen"); if(ar) ar.onclick=()=>armEdit(state.arm);
+  const ad=document.getElementById("armDel"); if(ad) ad.onclick=()=>{ if(!state.armDel){ state.armDel=true; render(); return; }
+    const nm=armName(state.arm); CONFIG={...CONFIG, armazens:(CONFIG.armazens||[]).filter(a=>a.id!==state.arm)}; if(cfgDoc) queueWrite("cfg", ()=>cfgDoc.set(cfgData()));
+    state.arm=ARM_EST; state.armDel=false; state.rua=null; state.bf=null; toast(`${nm} excluído`); render(); };
   app.querySelectorAll("[data-rua]").forEach(b=>b.onclick=()=>{ state.rua=ruaKey(b.dataset.rua); state.selLoc=null; state.bf=null; render(); });
   app.querySelectorAll("[data-lado]").forEach(b=>b.onclick=()=>{ state.lado=b.dataset.lado; state.selLoc=null; state.bf=null; render(); });
   app.querySelectorAll("[data-ltipo]").forEach(b=>b.onclick=()=>{ state.locTipo=b.dataset.ltipo; render(); });
@@ -5984,6 +6027,19 @@ function bindEnderecos(){
     const id=b.dataset.delblock; delete BLOCKS[id]; if(blockCol) queueWrite("b:"+id, ()=>blockCol.doc(id).delete()); state.selLoc=null; toast("Estrutura removida"); render();
   });
   if(state.selLoc && parseLoc(state.selLoc)) bindLocPanel(); else bindBlockForm();
+}
+function armEdit(id){
+  const cur=id ? armList().find(a=>a.id===id) : null;
+  askModal({title: cur ? "Renomear local de armazenamento" : "Novo local de armazenamento", okText: cur ? "Salvar" : "Criar",
+    text: cur ? "" : "Um local separado do Estoque, com as próprias estruturas (colmeia, caixas bin, gavetas) e endereços. Ex.: <b>Sala do Marketing</b>, ponta de estoque.",
+    input:{placeholder:"Nome do local (ex.: Sala do Marketing)", min:2, minMsg:"Digite o nome do local."}}).then(v=>{
+    if(!v) return; const nome=String(v).trim().slice(0,40);
+    if(armList().some(a=>a.id!==id && a.nome.toLowerCase()===nome.toLowerCase())){ toast("Já existe um local com esse nome"); return; }
+    let L=[...(CONFIG.armazens||[])];
+    if(cur) L=L.map(a=>a.id===id ? {...a, nome} : a);
+    else { const nid="arm-"+Date.now().toString(36); L.push({id:nid, nome, at:Date.now(), by:ME.id||""}); state.arm=nid; state.rua=null; state.bf=null; state.selLoc=null; }
+    CONFIG={...CONFIG, armazens:L}; if(cfgDoc) queueWrite("cfg", ()=>cfgDoc.set(cfgData()));
+    toast(cur ? "Nome atualizado" : `${nome} criado · agora crie as estruturas`); render(); });
 }
 function bindBlockForm(){
   const f=state.bf, upd=()=>{ const pv=blockPreview(f), el=document.getElementById("bf-prev"); el.className=pv.err?"err":"warn"; el.textContent=pv.err||`${pv.count} locais: de ${pv.first} até ${pv.last}`; document.getElementById("bf-go").disabled=!!pv.err; };
@@ -8024,7 +8080,7 @@ render();
   if(userCap){ const me = await userCap.me(); ME = {id:me.id, name:me.name, isOwner:me.isOwner, avatarUrl:me.avatarUrl}; }
   if(!db){ synced=false; authReady=true; rerender(); return; }
   cfgDoc = db.doc("config/picking");
-  cfgDoc.onSnapshot(snap=>{ const d=snap.exists?snap.data():null; CONFIG = {requireLoc:false, useTray: d?.useTray ?? true, binStacks: Array.isArray(d?.binStacks) && d.binStacks.length ? d.binStacks : (d?.binStack ? Array(d.binShelves||2).fill(d.binStack) : [6,4]), staleDays: d?.staleDays ?? 7}; rerender(); }, ()=>{ cfgDoc=null; });
+  cfgDoc.onSnapshot(snap=>{ const d=snap.exists?snap.data():null; CONFIG = {requireLoc:false, useTray: d?.useTray ?? true, binStacks: Array.isArray(d?.binStacks) && d.binStacks.length ? d.binStacks : (d?.binStack ? Array(d.binShelves||2).fill(d.binStack) : [6,4]), staleDays: d?.staleDays ?? 7, armazens: Array.isArray(d?.armazens) ? JSON.parse(JSON.stringify(d.armazens)) : []}; rerender(); }, ()=>{ cfgDoc=null; });
   db.doc("config/magazord_sync").onSnapshot(snap=>{ MZSYNC = snap.exists ? JSON.parse(JSON.stringify(snap.data())) : null; if(state.sector==="usuarios") rerender(); }, ()=>{});
   srDoc = db.doc("config/showroom");
   srDoc.onSnapshot(snap=>{ const d=snap.exists?snap.data():null; SRCFG={videos: Array.isArray(d?.videos) ? JSON.parse(JSON.stringify(d.videos)) : [], readyMin: +d?.readyMin || 10}; if(IS_SHOWROOM || state.sector==="usuarios") rerender(); }, ()=>{});
