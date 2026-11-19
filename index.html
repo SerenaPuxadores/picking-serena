@@ -1277,8 +1277,8 @@ function pvSlot(p){ const base=pvId(p);
   return {id:`${base}-${Date.now()}`, prev:null, again:2, last:null}; }
 const reenvioTag = o => (o.reenvio ? ` <span class="chip enc" title="Esta pré-venda já tinha sido entregue; este é um novo pedido com o mesmo número">${o.reenvio}ª entrega</span>` : "") + envTag(o);
 /* Envio parcial desmembrado: a pré-venda nova (itens da loja) é o 1º envio; a original fica com a encomenda */
-const envTag = o => o?.envio1De ? ` <span class="chip envtag" title="Pré-venda desmembrada da #${esc(o.envio1Num||"")}: itens da loja. A encomenda segue na #${esc(o.envio1Num||"")}.">Com Encomenda - 1° Envio</span>`
-  : o?.envio1 ? ` <span class="chip enc" title="Pré-venda desmembrada: o 1º envio saiu como #${esc(o.envio1.num)}">1º envio: #${esc(o.envio1.num)}</span>` : "";
+const envTag = o => (o?.envio1De ? ` <span class="chip envtag" title="Pré-venda desmembrada da #${esc(o.envio1Num||"")}: itens da loja. A encomenda segue na #${esc(o.envio1Num||"")}.">Com Encomenda - 1° Envio</span>`
+  : o?.envio1 ? ` <span class="chip enc" title="Pré-venda desmembrada: o 1º envio saiu como #${esc(o.envio1.num)}">1º envio: #${esc(o.envio1.num)}</span>` : "") + (o?.juntar ? ` <span class="chip enc" title="Na separação, guarde junto com a #${esc(o.juntar.num)} na colmeia dela">Juntar com #${esc(o.juntar.num)}${juntaDest(o)?" · "+esc(juntaDest(o).colmeia.slice(3)):""}</span>` : "");
 function parsePresale(raw){
   const cells = raw.filter(c=>c.s && c.s.trim()).map(c=>({s:c.s.trim(), x:c.x, y:c.y, w:c.w, cx:c.x+c.w/2}));
   const lines=[];
@@ -1367,7 +1367,10 @@ const onHiveTab = () => state.view==="orders" && (state.sector==="colmeias" || (
 const hiveFree = c => HIVE.includes(c) && !ORDERS.some(o=>usesHive(o)&&o.colmeia===c) && !ORDERS.some(o=>o.adj?.status==="pendente" && o.adj.moveTo===c);
 const usesHive = o => o.status!=="enviado" && o.status!=="excluido" && !!o.colmeia && (o.mode==="aguarda" || o.retira);
 // vai para a colmeia: aguarda encomenda, ou o cliente vai retirar depois. "Cliente está na loja" não: é entregue na hora, na mesa
-const toHive = o => o.fase2 ? (!isEco(o) && (o.encParcial || o.retira || o.naLoja)) : (o.mode==="aguarda" || (!isEco(o) && o.retira && !o.naLoja)); // encomenda que chegou para cliente retirar: vai para a colmeia
+/* Juntar com outra pré-venda que já está na colmeia (ex.: pré-venda desmembrada cuja encomenda veio em outra):
+   o.juntar = {oid, num}. Quando esta é separada, termina na colmeia da outra e as duas ficam prontas juntas. */
+const juntaDest = o => { const j=o?.juntar?.oid ? ORDERS.find(x=>x.id===o.juntar.oid) : null; return j && usesHive(j) ? j : null; };
+const toHive = o => !!juntaDest(o) || (o.fase2 ? (!isEco(o) && (o.encParcial || o.retira || o.naLoja)) : (o.mode==="aguarda" || (!isEco(o) && o.retira && !o.naLoja))); // encomenda que chegou para cliente retirar: vai para a colmeia
 function normalize(o){ // compatibilidade com pedidos gravados na versão anterior
   if(o.status==="aguardando_envio") o.status="pronto_envio";
   if(o.status==="aguardando_encomenda") o.status="na_colmeia";
@@ -4896,7 +4899,8 @@ function renderPick(){
     <div class="pickcli ${isManual(o)?"manual":""}"><span>Cliente</span><b>${esc(o.client||"Não informado")}</b>${manualTag(o)}</div>
     ${o.mzCancelado?`<div class="mzcancel big">Pedido CANCELADO na Magazord · pare a separação e devolva as peças</div>`:o.mzMudou?`<div class="mzcancel big warn">A situação deste pedido mudou na Magazord para "${esc(o.mzSituacaoDesc||o.mzSituacao)}" · confirme com o responsável antes de continuar</div>`:""}
     ${urgBar(o,"margin-top:8px")}
-    ${o.fase2 && toHive(o) && !o.encParcial ? `<div class="directbar hivebar">Encomenda chegou · no fim, guarde ${o.colmeia?`na colmeia <b>${esc(o.colmeia.slice(3))}</b>, junto com o que já está lá (ou bipe outra)`:"numa <b>colmeia</b>: você escolhe uma livre ou junta com outra pré-venda"}. O cliente retira lá.</div>` : ""}
+    ${juntaDest(o) ? `<div class="directbar hivebar">Juntar com a <b>#${esc(juntaDest(o).num)}</b> · no fim, guarde na colmeia <b>${esc(juntaDest(o).colmeia.slice(3))}</b>, junto com ela</div>` : ""}
+    ${o.fase2 && toHive(o) && !o.encParcial && !juntaDest(o) ? `<div class="directbar hivebar">Encomenda chegou · no fim, guarde ${o.colmeia?`na colmeia <b>${esc(o.colmeia.slice(3))}</b>, junto com o que já está lá (ou bipe outra)`:"numa <b>colmeia</b>: você escolhe uma livre ou junta com outra pré-venda"}. O cliente retira lá.</div>` : ""}
     ${o.fase2 && pl.some(x=>x.recMesa) ? `<div class="directbar"><span>Encomenda que chegou: as peças estão na <b>${[...new Set(pl.map(x=>x.recMesa).filter(Boolean))].map(m=>esc(mesaName(m))).join(", ")}</b>, onde o conferente deixou. Busque lá e <b>bipe a etiqueta da mesa</b> para desvincular.</span></div>` : ""}
     ${o.fase2 && o.encParcial ? `<div class="directbar hivebar"><span>Chegou <b>só parte da encomenda</b>. Separe estas peças e <b>guarde na colmeia</b>${o.colmeia?` <b>${esc(o.colmeia.slice(3))}</b>, onde o pedido já está`:""}: o pedido continua aguardando o restante.</span></div>` : ""}
     ${o.fase2 && !toHive(o) && o.colmeia ? `<div class="directbar hivebar"><span>Este pedido tem peças guardadas na <b>colmeia ${esc(o.colmeia.slice(3))}</b> aguardando a encomenda. Busque lá também e finalize tudo na sua mesa.</span></div>` : ""}
@@ -5002,7 +5006,7 @@ function renderStore(){
       <div class="store-code${o.colmeia?"":" sm"}">${o.colmeia ? esc(o.colmeia) : "Bipe a colmeia"}</div>
       <div class="meta tnum"><span>${got} de ${need} peças separadas</span><span>${o.fase2 && o.encParcial ? "Fica aguardando o restante da encomenda" : o.mode==="aguarda" && !o.fase2 ? "Fica aguardando a encomenda" : "Fica aguardando o cliente retirar"}</span></div>
       <div class="hivebig">${hiveHTML(o.colmeia)}</div>
-      ${hivePrev(o) ? `<div class="hintbox warnbox"><b>Já tem peças na colmeia ${esc(o.colmeia.slice(3))} · guarde junto</b></div>` : ""}
+      ${juntaDest(o) ? `<div class="hintbox warnbox"><b>Junte com a pré-venda #${esc(juntaDest(o).num)} na colmeia ${esc(juntaDest(o).colmeia.slice(3))}</b> · as duas saem juntas</div>` : hivePrev(o) ? `<div class="hintbox warnbox"><b>Já tem peças na colmeia ${esc(o.colmeia.slice(3))} · guarde junto</b></div>` : ""}
       <div class="instr">${ICON_SCAN}<div>${o.colmeia && hivePrev(o) ? `Guarde na colmeia <b>${esc(o.colmeia.slice(3))}</b> e bipe a etiqueta.` : o.colmeia ? `O pedido já está na colmeia <b>${esc(o.colmeia.slice(3))}</b>: coloque as peças lá e bipe a etiqueta. Se for guardar em outra, bipe a outra colmeia.` : `Escolha uma colmeia, coloque as peças e <b>bipe a etiqueta da colmeia</b> para finalizar. Pode ser uma que já tem outra pré-venda: elas ficam juntas.`}</div></div>
       <button class="demo" id="sim">Simular leitura da colmeia (demo)</button>
     </div>`;
@@ -5026,6 +5030,9 @@ function finishStore(o){
     state.fromMesa=false; state.mesaLast=o.id; state.view="mesa"; render(); scrollTo(0,0); return;
   }
   patchOrder(o.id, {status: o.fase2 || o.mode!=="aguarda" ? "pronto_envio" : "na_colmeia", trayStatus: o.trayStatus||"", storedAt:Date.now(), res:res(o)}); // 2ª etapa: tudo na colmeia, pronto para retirar
+  { const j=juntaDest(o), now=Date.now(); if(j && j.colmeia===o.colmeia){ // juntou com a outra pré-venda: as duas ficam prontas
+      patchOrder(o.id, {hist:[...(o.hist||[]), {t:now, by:ME.id||"", ev:`Guardada na colmeia ${o.colmeia.slice(3)} junto com a #${j.num}`}]});
+      if(j.status==="na_colmeia" && !encItems(j).some(x=>!encArrived(j))) patchOrder(j.id, {status:"pronto_envio", aguardaOutraPv:false, hist:[...(j.hist||[]), {t:now, by:ME.id||"", ev:`A #${o.num} (encomenda) foi separada e guardada junto na colmeia ${o.colmeia.slice(3)} · pronto para enviar`}]}); } }
   if(fromPick){ state.view="done"; render(); scrollTo(0,0); return; }
   state.fromMesa=false; state.mesaLast=o.id; state.view="mesa"; render(); scrollTo(0,0);
 }
@@ -5061,7 +5068,8 @@ function finishAtMesa(o){
   const r=res(o), got=pickList(o).reduce((a,x)=>a+(r[x.i].got||0),0), now=Date.now();
   if(!got){ patchOrder(o.id, {status:"pronto_envio", remessa:1, pickedAt:now, semPecas:true, res:r, ...(o.tray?{trayStatus:"livre"}:{})}); toast(`Pedido ${o.num} sem peças`); state.view="done"; render(); scrollTo(0,0); return; }
   if(toHive(o)){ // o separador escolhe a colmeia: bipa a etiqueta de onde vai guardar
-    patchOrder(o.id, {status:"na_mesa", pickedAt:now, atMesaAt:now, pickedBy:ME.id||"", res:r, ...(hasTray(o)?{trayStatus:"mesa"}:{})});
+    const jd=juntaDest(o);
+    patchOrder(o.id, {status:"na_mesa", pickedAt:now, atMesaAt:now, pickedBy:ME.id||"", res:r, ...(jd?{colmeia:jd.colmeia, mode:"aguarda"}:{}), ...(hasTray(o)?{trayStatus:"mesa"}:{})});
     toast("Separação concluída");
     state.view="store"; render(); scrollTo(0,0); setMsg(o.colmeia ? `Guarde na colmeia ${o.colmeia.slice(3)} (onde o pedido já está) ou bipe outra` : "Bipe a colmeia onde vai guardar o pedido","info"); return;
   }
