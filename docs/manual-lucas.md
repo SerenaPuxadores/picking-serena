@@ -2,7 +2,7 @@
 
 Base de conhecimento do assistente **Lucas**. Descreve como o sistema funciona hoje, tela por tela e passo a passo. Sempre que uma atualização for publicada, este manual é atualizado junto.
 
-Última atualização: 18/11/2026 (locais de armazenamento · Sala do Marketing).
+Última atualização: 20/11/2026 (tudo junto · remessas na colmeia).
 
 ---
 
@@ -282,6 +282,15 @@ O card mostra cada item com as colunas **Vendido**, **Encomendar** e **Da loja**
 Depois toque em **Confirmar e encaminhar**. O card também mostra o que o Comercial pediu e se o cliente retira ou está na loja.
 - **Para decidir · Ajuste**: pré-venda já separada que o Comercial ajustou com Tem encomenda. O card mostra só o que entrou de novo (coluna "Novo no ajuste"); digite quanto encomendar, o restante é separado da loja e vira tarefa de ajuste para o separador juntar na colmeia do pedido.
 - **Editar itens** (só Administrador): no card "Para decidir", abre uma janela para mudar a quantidade, excluir item (×) ou adicionar item pelo SKU ou descrição. Ao salvar, o card atualiza e Compras segue decidindo. Fica registrado no histórico do pedido.
+
+### 7.1c Tudo junto · remessas na colmeia (a partir de 20/11/2026)
+Vale para toda pré-venda da Venda Consultiva que tem **itens da loja e encomenda** e sai **tudo junto** (envio ou retirada na loja). O envio parcial continua como no 7.1b.
+1. **Compras decide** em Para decidir (quanto encomendar) com **Tudo junto · remessas na colmeia** e confirma. A pré-venda vai para a aba **Desmembrar** (não vai direto para a separação).
+2. **1ª remessa (itens da loja)**: Compras desmembra no sistema de vendas (a pré-venda **nova** leva os itens da loja; a **original** fica com a encomenda) e toca em **Importar PDF da pré-venda nova**. O sistema confere com a decisão e manda a nova para a fila com a etiqueta **Remessa 1 · #original**. O separador separa e **guarda numa colmeia** (não vai para a mesa). A original mostra **Remessas: #...**.
+3. **Chegou parte da encomenda** (nota conferida no Recebimento, mas ainda falta item; pode ser outro fornecedor ou outro dia): a original volta para **Desmembrar** com "Chegou parte da encomenda · desmembrar a 2ª remessa", mostrando o que chegou e o que continua faltando. Compras desmembra de novo no sistema de vendas e importa o PDF da pré-venda nova (**Importar PDF da Nª remessa**). Ela entra na fila (peças na área de recebimento / mesa) e o separador **guarda na mesma colmeia** das outras remessas. Pode acontecer quantas vezes precisar.
+4. **Última encomenda**: **fica na pré-venda original** (não desmembra; o sistema recusa se a pré-venda nova levar tudo o que falta). Quando a nota for conferida, a original entra sozinha na fila e o separador guarda na mesma colmeia.
+5. Ao guardar a original, **todas as remessas ficam prontas juntas** na colmeia (Pronto para enviar ou para o cliente retirar). Cada uma sai pelo **Enviar** / **Cliente irá retirar** da colmeia.
+Se a nota da última encomenda for conferida enquanto ainda havia uma remessa para desmembrar, não precisa desmembrar: a original vai para a separação com tudo o que chegou.
 
 ### 7.1b Envio parcial · desmembrar a pré-venda
 Quando a pré-venda tem parte da loja e parte encomenda, o card de **Para decidir** mostra duas opções: **Tudo junto · aguarda na colmeia** (as peças da loja esperam a encomenda na colmeia e sai tudo num envio) ou **Envio parcial · desmembrar a pré-venda** (já vem marcada quando o Comercial pediu envio parcial). No envio parcial a pré-venda **não vai para a separação**: vai para a aba **Desmembrar** de Compras.

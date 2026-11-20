@@ -1277,7 +1277,9 @@ function pvSlot(p){ const base=pvId(p);
   return {id:`${base}-${Date.now()}`, prev:null, again:2, last:null}; }
 const reenvioTag = o => (o.reenvio ? ` <span class="chip enc" title="Esta pré-venda já tinha sido entregue; este é um novo pedido com o mesmo número">${o.reenvio}ª entrega</span>` : "") + envTag(o);
 /* Envio parcial desmembrado: a pré-venda nova (itens da loja) é o 1º envio; a original fica com a encomenda */
-const envTag = o => (o?.envio1De ? ` <span class="chip envtag" title="Pré-venda desmembrada da #${esc(o.envio1Num||"")}: itens da loja. A encomenda segue na #${esc(o.envio1Num||"")}.">Com Encomenda - 1° Envio</span>`
+const remTag = o => o?.remDe ? ` <span class="chip enc" title="Remessa da pré-venda #${esc(o.remDeNum||"")}: vai para a colmeia e sai junto com as demais">Remessa ${o.remN||""} · #${esc(o.remDeNum||"")}</span>`
+  : o?.rems?.length ? ` <span class="chip enc" title="Remessas desmembradas desta pré-venda">Remessas: ${o.rems.map(r=>"#"+esc(r.num)).join(", ")}</span>` : "";
+const envTag = o => remTag(o) + (o?.envio1De ? ` <span class="chip envtag" title="Pré-venda desmembrada da #${esc(o.envio1Num||"")}: itens da loja. A encomenda segue na #${esc(o.envio1Num||"")}.">Com Encomenda - 1° Envio</span>`
   : o?.envio1 ? ` <span class="chip enc" title="Pré-venda desmembrada: o 1º envio saiu como #${esc(o.envio1.num)}">1º envio: #${esc(o.envio1.num)}</span>` : "") + (o?.juntar ? ` <span class="chip enc" title="Na separação, guarde junto com a #${esc(o.juntar.num)} na colmeia dela">Juntar com #${esc(o.juntar.num)}${juntaDest(o)?" · "+esc(juntaDest(o).colmeia.slice(3)):""}</span>` : "");
 function parsePresale(raw){
   const cells = raw.filter(c=>c.s && c.s.trim()).map(c=>({s:c.s.trim(), x:c.x, y:c.y, w:c.w, cx:c.x+c.w/2}));
@@ -1369,13 +1371,20 @@ const usesHive = o => o.status!=="enviado" && o.status!=="excluido" && !!o.colme
 // vai para a colmeia: aguarda encomenda, ou o cliente vai retirar depois. "Cliente está na loja" não: é entregue na hora, na mesa
 /* Juntar com outra pré-venda que já está na colmeia (ex.: pré-venda desmembrada cuja encomenda veio em outra):
    o.juntar = {oid, num}. Quando esta é separada, termina na colmeia da outra e as duas ficam prontas juntas. */
-const juntaDest = o => { const j=o?.juntar?.oid ? ORDERS.find(x=>x.id===o.juntar.oid) : null; return j && usesHive(j) ? j : null; };
-const toHive = o => !!juntaDest(o) || (o.fase2 ? (!isEco(o) && (o.encParcial || o.retira || o.naLoja)) : (o.mode==="aguarda" || (!isEco(o) && o.retira && !o.naLoja))); // encomenda que chegou para cliente retirar: vai para a colmeia
+/* Remessas (encomenda "tudo junto", envio ou retirada): Compras desmembra a pré-venda. A original (o.rems) fica com a encomenda;
+   cada remessa (o.remDe = id da original) é uma pré-venda nova: a 1ª com os itens da loja, as seguintes com o que chegou da encomenda.
+   Todas são guardadas na mesma colmeia; a última encomenda fica na própria original e, quando ela é guardada, o grupo fica pronto. */
+const grpId = o => o?.remDe || (o?.rems?.length ? o.id : null);
+const grpMembers = g => ORDERS.filter(x=>x.id===g || x.remDe===g);
+const grpHive = o => { const g=grpId(o); return g ? grpMembers(g).find(x=>x.id!==o.id && x.colmeia && ["na_colmeia","pronto_envio"].includes(x.status) && x.status!=="enviado") || null : null; };
+const juntaDest = o => { const j=o?.juntar?.oid ? ORDERS.find(x=>x.id===o.juntar.oid) : null; return j && usesHive(j) ? j : grpHive(o); };
+const encMv = it => +it?.encMoved||0; // peças da encomenda já passadas para uma remessa
+const toHive = o => !!juntaDest(o) || !!o.remDe || (!!o.rems?.length && !!o.fase2) || (o.fase2 ? (!isEco(o) && (o.encParcial || o.retira || o.naLoja)) : (o.mode==="aguarda" || (!isEco(o) && o.retira && !o.naLoja))); // encomenda que chegou para cliente retirar: vai para a colmeia
 function normalize(o){ // compatibilidade com pedidos gravados na versão anterior
   if(o.status==="aguardando_envio") o.status="pronto_envio";
   if(o.status==="aguardando_encomenda") o.status="na_colmeia";
   if(o.mode==="parcial" && o.colmeia && !o.v2) o.mode="aguarda";
-  if(o.mode==="aguarda" && !o.hiveManual && (o.items||[]).length && o.items.every(i=>(i.qtyEnc||0)>=i.qty) && ["na_colmeia","aguardando"].includes(o.status) && !o.fase2 && !o.items.some(i=>+i.encStored>0)){ o.mode="encomenda"; o.status="encomenda"; delete o.colmeia; } // tudo encomenda: sem colmeia
+  if(o.mode==="aguarda" && !o.hiveManual && !o.remDe && (o.items||[]).length && o.items.every(i=>(i.qtyEnc||0)>=i.qty) && ["na_colmeia","aguardando"].includes(o.status) && !o.fase2 && !o.items.some(i=>+i.encStored>0)){ o.mode="encomenda"; o.status="encomenda"; delete o.colmeia; } // tudo encomenda: sem colmeia
   if(o.colmeia) o.colmeia = hiveCode(o.colmeia);
   if(o.mode!=="aguarda" && !(o.retira && !o.naLoja) && !(o.items||[]).some(i=>+i.encStored>0)) delete o.colmeia; // peças de encomenda já guardadas: mantém a colmeia
   o.canal ||= "consultiva"; // canal de venda: consultiva (pré-venda) ou ecommerce (fluxo futuro)
@@ -1564,7 +1573,7 @@ const heldPartial = o => !o.fase2 && !!o.colmeia && encStoredQty(o)>0 && encRest
 const RUN_KEYS=["startedAt","startedBy","pickedAt","pickedBy","atMesaAt","storedAt","tray","trayStatus","queuedAt","conferidoLocal","arrivedAt","nfRecebida","pickedAtAprox"];
 const runOf = o => Object.fromEntries(RUN_KEYS.map(k=>[k, o[k]??null]));
 /* Encomenda: peças a separar na 2ª etapa. Chegada parcial: só o que chegou e ainda não foi guardado; chegada completa: o que falta guardar */
-const encNeed = (o,it) => { const enc=+it.qtyEnc||0, st=+it.encStored||0; if(!enc) return 0; return o.encParcial ? Math.max(0, Math.min(enc, nfRecv(it)) - st) : Math.max(0, enc - st); };
+const encNeed = (o,it) => { const enc=+it.qtyEnc||0, st=+it.encStored||0+encMv(it); if(!enc) return 0; return o.encParcial ? Math.max(0, Math.min(enc, nfRecv(it)) - st) : Math.max(0, enc - st); };
 function pickList(o){
   if(o.fase2) return o.items.map((it,i)=>({...it, i, need: encNeed(o,it), loc: null, ean: liveEan(it), recv:true, recMesa: it.recMesa||"", recMesaFrom: it.recMesaFrom||""})).filter(x=>x.need>0); // 2ª etapa: peças da encomenda, na área de recebimento
   return o.items.map((it,i)=>({...it, i, need: it.qty-(it.qtyEnc||0), loc: liveLoc(it), ean: liveEan(it)})).filter(x=>x.need>0)
@@ -2252,7 +2261,7 @@ const decPend = o => (o.items||[]).some(it=>it.qtyDec>0);
 const encArrived = o => !!o.arrivedAt || (o.mode==="parcial" && o.remessa===2);
 const encOpen = o => !isEco(o) && !["enviado","excluido","analise_compras"].includes(o.status) && encItems(o).length>0 && !encArrived(o);
 const toDecide = o => o.status==="analise_compras" || (decPend(o) && !["enviado","excluido"].includes(o.status));
-const canRelease = o => o.status==="na_colmeia" || o.status==="encomenda" || o.status==="enc_pendente" || (o.status==="pronto_envio" && o.mode==="parcial" && o.remessa!==2);
+const canRelease = o => (o.status==="desmembrar" && o.desmRem) || o.status==="na_colmeia" || o.status==="encomenda" || o.status==="enc_pendente" || (o.status==="pronto_envio" && o.mode==="parcial" && o.remessa!==2);
 const compraSt = it => it.compra?.st==="chegou" ? "chegou" : nfRecv(it)>=it.qtyEnc && it.qtyEnc>0 ? "chegou" : nfQty(it)>=it.qtyEnc && it.qtyEnc>0 ? "faturado" : nfQty(it)>0 ? "fatparc" : (it.compra?.links||[]).reduce((s,l)=>s+(+l.qty||0),0) >= it.qtyEnc ? "pedido" : (it.compra?.links||[]).length ? "parcial" : "falta";
 const compraQty = it => (it.compra?.links||[]).reduce((s,l)=>s+(+l.qty||0),0);
 function encKind(o){
@@ -2376,6 +2385,7 @@ function decidePlanText(pl, o){
   if(pl.kind==="aguarda" && dqMode(o)==="parcial") return `<b>Envio parcial · desmembrar</b>: ${pl.refsPick} ref. · ${pl.pick} pç da loja vão numa <b>pré-venda nova</b> (1º envio) · a #${esc(o.num)} fica com a encomenda (${pl.enc} pç). Depois de confirmar, importe o PDF da pré-venda nova na aba <b>Desmembrar</b>.`;
   if(pl.kind==="encomenda") return `<b>Encomenda total</b>: encomendar ${pl.enc} pç · não passa pela separação nem usa colmeia.`;
   if(pl.kind==="total") return `<b>Nada a encomendar</b>: vai para a separação como envio total (${pl.pick} pç).`;
+  if(pl.kind==="aguarda" && !isEco(o)) return `<b>Tudo junto · desmembrar</b>: ${pl.refsPick} ref. · ${pl.pick} pç da loja vão numa <b>pré-venda nova</b> (1ª remessa), que é separada e guardada na colmeia · a #${esc(o.num)} fica com a encomenda (${pl.enc} pç). A cada chegada da encomenda, desmembre outra remessa; a última fica na #${esc(o.num)}. Sai tudo junto quando chegar tudo. Depois de confirmar, importe o PDF da pré-venda nova na aba <b>Desmembrar</b>.`;
   return `<b>Separar o que tem na loja</b>: ${pl.refsPick} ref. · ${pl.pick} pç vão para a separação e o separador guarda na colmeia que bipar · encomendar ${pl.enc} pç.`;
 }
 /* Ajuste de pedido já separado enviado como "Tem encomenda": Compras decide só os itens novos / o aumento */
@@ -2431,7 +2441,7 @@ function decideCard(o){
       <td class="r"><div class="encin"><input type="number" min="0" max="${it.qty}" step="1" value="${e}" data-dq="${o.id}:${i}" aria-label="Encomendar de ${esc(it.code)}"><label><input type="checkbox" data-dqall="${o.id}:${i}" ${e===it.qty?"checked":""}>todas</label></div></td>
       <td class="r tnum"><b>${it.qty-e}</b></td><td class="tnum">${fmtDate(it.eta)||"—"}</td></tr>`; }).join("")}
     </tbody></table></div>
-    ${!isEco(o)?`<div class="seg dqm" role="group" aria-label="Como enviar" data-dqmw="${o.id}" ${pl.kind==="aguarda"?"":"hidden"}><button type="button" data-dqm="${o.id}:junto" aria-pressed="${dqMode(o)==="junto"}">Tudo junto · aguarda na colmeia</button><button type="button" data-dqm="${o.id}:parcial" aria-pressed="${dqMode(o)==="parcial"}">Envio parcial · desmembrar a pré-venda</button></div>`:""}
+    ${!isEco(o)?`<div class="seg dqm" role="group" aria-label="Como enviar" data-dqmw="${o.id}" ${pl.kind==="aguarda"?"":"hidden"}><button type="button" data-dqm="${o.id}:junto" aria-pressed="${dqMode(o)==="junto"}">Tudo junto · remessas na colmeia</button><button type="button" data-dqm="${o.id}:parcial" aria-pressed="${dqMode(o)==="parcial"}">Envio parcial · desmembrar a pré-venda</button></div>`:""}
     <div class="decplan" id="dp-${o.id}">${decidePlanText(pl,o)}</div>
     <div class="cpfoot">${hasRole("admin")?`<button class="mini" data-ditems="${o.id}">Editar itens</button>`:""}<button class="mini" data-dall="${o.id}">Encomendar tudo</button><button class="btn primary cpbtn" data-dok="${o.id}">Confirmar e encaminhar</button></div>
   </article>`;
@@ -2496,16 +2506,35 @@ function openDecideItems(id){
 }
 /* ---- Envio parcial: Compras desmembra a pré-venda (a nova = 1º envio, itens da loja; a original = encomenda) ---- */
 const loja = it => Math.max(0, (+it.qty||0)-(+it.qtyEnc||0));
+const desmKind = o => o.desmRem ? "chegada" : o.mode==="aguarda" ? "junto" : "parcial";
+// peças da encomenda que chegaram (nota conferida) e ainda não foram para remessa nem guardadas
+const remAvail = it => Math.max(0, Math.min(+it.qtyEnc||0, nfRecv(it)) - encMv(it) - (+it.encStored||0));
+const remLeft = it => Math.max(0, (+it.qtyEnc||0) - encMv(it)); // encomenda que ainda é da original
+function desmCardRem(o){
+  const its=(o.items||[]).map((it,i)=>({...it,i})).filter(it=>remLeft(it)>0), av=its.reduce((s,it)=>s+remAvail(it),0), nr=(o.rems||[]).length+1;
+  return `<article class="cpcard dec">
+    <div class="cphead"><b class="mono">#${esc(o.num)}</b>${envTag(o)}<span class="chip urg">Chegou parte da encomenda · desmembrar a ${nr}ª remessa</span>${o.naLoja?`<span class="retirabar">CLIENTE NA LOJA</span>`:o.retira?`<span class="retirabar rb-green">RETIRA NA LOJA</span>`:""}</div>
+    <div class="cpcli">${esc(o.client)}<small>${[o.seller?"Vendedor "+esc(o.seller):"", transpOf(o)?esc(transpOf(o)):""].filter(Boolean).join(" · ")}</small></div>
+    <div class="cpnote">Chegou parte da encomenda (nota conferida). Desmembre no sistema de vendas: a <b>pré-venda nova</b> leva o que chegou (${nr}ª remessa) e a <b>#${esc(o.num)}</b> fica com o que ainda falta. Importe aqui o PDF da pré-venda nova: ela vai para a separação e é guardada na colmeia junto com as outras remessas.</div>
+    <div class="cptwrap"><table class="cptab"><thead><tr><th>Código</th><th>Item</th><th class="r">Encomenda</th><th class="r">Chegou · ${nr}ª remessa</th><th class="r">Continua na #${esc(o.num)}</th></tr></thead><tbody>
+    ${its.map(it=>`<tr><td class="mono">${esc(it.code)}</td><td>${esc(it.name)}</td><td class="r tnum">${remLeft(it)}</td><td class="r tnum"><b>${remAvail(it)||"—"}</b></td><td class="r tnum">${remLeft(it)-remAvail(it)||"—"}</td></tr>`).join("")}
+    </tbody></table></div>
+    <div class="decplan"><b>${nr}ª remessa: ${av} pç</b> · continua na #${esc(o.num)}: ${its.reduce((s,it)=>s+remLeft(it)-remAvail(it),0)} pç</div>
+    <div class="cpfoot"><label class="btn primary cpbtn" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Importar PDF da ${nr}ª remessa<input type="file" accept="application/pdf,.pdf" data-desmpdf="${o.id}" hidden></label></div>
+  </article>`;
+}
 function desmCard(o){
+  if(o.desmRem) return desmCardRem(o);
+  const junto=desmKind(o)==="junto", E1=junto?"1ª remessa · loja":"1º envio · loja";
   const its=(o.items||[]), pc=its.reduce((s,it)=>s+loja(it),0), en=its.reduce((s,it)=>s+(+it.qtyEnc||0),0);
   return `<article class="cpcard dec">
-    <div class="cphead"><b class="mono">#${esc(o.num)}</b><span class="chip urg">Aguardando desmembramento</span><span class="muted-s">Compras decidiu envio parcial${o.decidedAt?" há "+since(o.decidedAt):""}</span>${o.naLoja?`<span class="retirabar">CLIENTE NA LOJA</span>`:o.retira?`<span class="retirabar rb-green">RETIRA NA LOJA</span>`:""}</div>
+    <div class="cphead"><b class="mono">#${esc(o.num)}</b><span class="chip urg">Aguardando desmembramento</span><span class="muted-s">Compras decidiu ${junto?"tudo junto":"envio parcial"}${o.decidedAt?" há "+since(o.decidedAt):""}</span>${o.naLoja?`<span class="retirabar">CLIENTE NA LOJA</span>`:o.retira?`<span class="retirabar rb-green">RETIRA NA LOJA</span>`:""}</div>
     <div class="cpcli">${esc(o.client)}<small>${[o.seller?"Vendedor "+esc(o.seller):"", transpOf(o)?esc(transpOf(o)):""].filter(Boolean).join(" · ")}</small></div>
-    <div class="cpnote">Desmembre no sistema de vendas: a <b>pré-venda nova</b> leva os itens da loja (1º envio) e a <b>#${esc(o.num)}</b> fica com a encomenda. Depois importe aqui o PDF da pré-venda nova: o sistema confere os itens e manda ela para a separação.</div>
-    <div class="cptwrap"><table class="cptab"><thead><tr><th>Código</th><th>Item</th><th class="r">Vendido</th><th class="r">1º envio · loja</th><th class="r">Encomenda · #${esc(o.num)}</th></tr></thead><tbody>
+    <div class="cpnote">Desmembre no sistema de vendas: a <b>pré-venda nova</b> leva os itens da loja (${junto?"1ª remessa":"1º envio"}) e a <b>#${esc(o.num)}</b> fica com a encomenda. Depois importe aqui o PDF da pré-venda nova: o sistema confere os itens e manda ela para a separação${junto?". Ela é guardada na colmeia e espera a encomenda: sai tudo junto":""}.</div>
+    <div class="cptwrap"><table class="cptab"><thead><tr><th>Código</th><th>Item</th><th class="r">Vendido</th><th class="r">${E1}</th><th class="r">Encomenda · #${esc(o.num)}</th></tr></thead><tbody>
     ${its.map(it=>`<tr><td class="mono">${esc(it.code)}</td><td>${esc(it.name)}</td><td class="r tnum">${it.qty}</td><td class="r tnum"><b>${loja(it)||"—"}</b></td><td class="r tnum">${it.qtyEnc||"—"}</td></tr>`).join("")}
     </tbody></table></div>
-    <div class="decplan"><b>1º envio: ${pc} pç</b> · encomenda: ${en} pç</div>
+    <div class="decplan"><b>${junto?"1ª remessa":"1º envio"}: ${pc} pç</b> · encomenda: ${en} pç</div>
     <div class="cpfoot">${hasRole("admin")?`<button class="mini" data-desmback="${o.id}">Voltar para decidir</button>`:""}<label class="btn primary cpbtn" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Importar PDF da pré-venda nova<input type="file" accept="application/pdf,.pdf" data-desmpdf="${o.id}" hidden></label></div>
   </article>`;
 }
@@ -2518,7 +2547,26 @@ function bindDesm(){
     patchOrder(o.id,{status:"analise_compras", hist:[...(o.hist||[]), {t:Date.now(), by:ME.id||"", ev:"Desmembramento cancelado · voltou para Compras decidir"}]}); state.cTab="decidir"; render(); });
 }
 // compara a pré-venda nova com o que Compras decidiu separar da loja
+function desmCheckRem(o, p){
+  const nv={}; (p.items||[]).forEach(it=>nv[it.code]=(nv[it.code]||0)+(+it.qty||0));
+  const its=(o.items||[]).filter(it=>remLeft(it)>0);
+  const codes=[...new Set([...its.filter(it=>remAvail(it)>0).map(it=>it.code), ...Object.keys(nv)])];
+  const rows=codes.map(c=>{ const xs=its.filter(x=>x.code===c), sold=xs.reduce((s,x)=>s+remLeft(x),0), exp=xs.reduce((s,x)=>s+remAvail(x),0), got=nv[c]||0;
+    return {code:c, name:xs[0]?.name || p.items.find(x=>x.code===c)?.name || c, sold, exp, got, inOrig:xs.length>0}; });
+  const errs=[];
+  if(String(p.num)===String(o.num)) errs.push(`Este é o PDF da própria #${o.num}. Importe a pré-venda nova desta remessa.`);
+  rows.filter(r=>!r.inOrig).forEach(r=>errs.push(`${r.code} não está na encomenda da #${o.num}.`));
+  rows.filter(r=>r.inOrig && r.got>r.exp).forEach(r=>errs.push(`${r.code}: ${r.got} pç na nova, mas só chegaram ${r.exp} pç (nota conferida).`));
+  if((p.items||[]).some(it=>!(+it.qty>0))) errs.push("Quantidade zerada em algum item: o PDF não foi lido corretamente.");
+  const leftAfter = its.reduce((s,x)=>s+remLeft(x),0) - Object.values(nv).reduce((a,b)=>a+b,0);
+  if(!errs.length && leftAfter<=0) errs.push(`A última remessa fica na própria #${o.num}: não desmembre. Quando a nota da última encomenda for conferida, a #${o.num} vai sozinha para a separação.`);
+  const sl=pvSlot({num:p.num, docType:p.docType||""}), ex=sl.prev && sl.prev.status!=="excluido" ? sl.prev : null;
+  if(ex) errs.push(`A pré-venda #${p.num} já está no sistema (${statusInfo(ex).t}).`);
+  const cliDiff = p.client && hvNorm(p.client).trim()!==hvNorm(o.client||"").trim();
+  return {rows, errs, diff: rows.some(r=>r.inOrig && r.got!==r.exp), sl, ex, cliDiff, rem:true};
+}
 function desmCheck(o, p){
+  if(o.desmRem) return desmCheckRem(o, p);
   const nv={}; (p.items||[]).forEach(it=>nv[it.code]=(nv[it.code]||0)+(+it.qty||0));
   const codes=[...new Set([...(o.items||[]).filter(it=>loja(it)>0).map(it=>it.code), ...Object.keys(nv)])];
   const rows=codes.map(c=>{ const its=(o.items||[]).filter(x=>x.code===c), sold=its.reduce((s,x)=>s+x.qty,0), exp=its.reduce((s,x)=>s+loja(x),0), got=nv[c]||0;
@@ -2536,21 +2584,46 @@ function desmCheck(o, p){
 function openDesm(o, p){
   const c=desmCheck(o, p), ov=document.createElement("div"); ov.className="modal"; document.body.appendChild(ov); scanbar.hidden=true;
   const close=()=>{ ov.remove(); render(); };
-  ov.innerHTML=`<div class="mbox wide" role="dialog" aria-modal="true" aria-label="Desmembrar a pré-venda ${esc(o.num)}"><h2>1º envio · #${esc(p.num)}</h2>
+  const K=desmKind(o), nr=(o.rems||[]).length+1, TT = K==="parcial" ? "1º envio" : `${nr}ª remessa`;
+  ov.innerHTML=`<div class="mbox wide" role="dialog" aria-modal="true" aria-label="Desmembrar a pré-venda ${esc(o.num)}"><h2>${TT} · #${esc(p.num)}</h2>
     <p>Pré-venda nova de <b>${esc(p.client||"—")}</b>, desmembrada da <b>#${esc(o.num)}</b>.</p>
-    <div class="cptwrap"><table class="cptab desmt"><thead><tr><th>Código</th><th>Item</th><th class="r">Decidido · loja</th><th class="r">Na #${esc(p.num)}</th><th class="r">Fica na encomenda</th></tr></thead><tbody>
+    <div class="cptwrap"><table class="cptab desmt"><thead><tr><th>Código</th><th>Item</th><th class="r">${K==="chegada"?"Chegou":"Decidido · loja"}</th><th class="r">Na #${esc(p.num)}</th><th class="r">${K==="chegada"?"Continua na #"+esc(o.num):"Fica na encomenda"}</th></tr></thead><tbody>
     ${c.rows.map(r=>`<tr><td class="mono">${esc(r.code)}</td><td>${esc(r.name)}</td><td class="r tnum">${r.exp}</td><td class="r tnum ${r.got===r.exp?"ok":"d"}">${r.got}${r.got===r.exp?" ✓":""}</td><td class="r tnum">${r.inOrig?Math.max(0,r.sold-r.got):"—"}</td></tr>`).join("")}
     </tbody></table></div>
     ${c.cliDiff?`<div class="desmbox">Atenção: o cliente da pré-venda nova (${esc(p.client)}) é diferente da #${esc(o.num)} (${esc(o.client)}).</div>`:""}
     ${c.errs.length?`<div class="desmbox bad">${c.errs.map(esc).join("<br>")}</div>`
+      : c.diff && K==="chegada"?`<div class="desmbox bad">A pré-venda nova <b>não bate</b> com o que chegou. Corrija no sistema de vendas e importe de novo, ou use a nova como está: o que não for nela continua na #${esc(o.num)}.</div>`
+      : !c.diff && K!=="parcial"?`<div class="desmbox">Tudo confere. A <b>#${esc(p.num)}</b> (${TT}) vai para a fila da separação e é <b>guardada na colmeia</b>${grpHive(o)?` <b>${esc(grpHive(o).colmeia.slice(3))}</b>, junto com as outras remessas`:""}. A <b>#${esc(o.num)}</b> continua aguardando ${K==="chegada"?"o resto da ":"a "}encomenda. Sai tudo junto quando chegar tudo.</div>`
       : c.diff?`<div class="desmbox bad">A pré-venda nova <b>não bate</b> com a decisão de Compras. Corrija no sistema de vendas e importe de novo, ou use a pré-venda nova como está: a encomenda da #${esc(o.num)} é recalculada (coluna "Fica na encomenda").</div>`
       : `<div class="desmbox">Tudo confere. A <b>#${esc(p.num)}</b> vai para a fila da separação com a tag <b>Com Encomenda - 1° Envio</b>, e a <b>#${esc(o.num)}</b> fica aguardando a encomenda.</div>`}
-    <div class="mact"><button class="btn ghost" id="mNo">Cancelar</button>${c.errs.length?"":`<button class="btn primary" id="mOk">${c.diff?"Usar a nova e recalcular a encomenda":"Confirmar desmembramento"}</button>`}</div></div>`;
+    <div class="mact"><button class="btn ghost" id="mNo">Cancelar</button>${c.errs.length?"":`<button class="btn primary" id="mOk">${c.diff?(K==="chegada"?"Usar a nova como está":"Usar a nova e recalcular a encomenda"):"Confirmar desmembramento"}</button>`}</div></div>`;
   ov.onclick=e=>{ if(e.target===ov) close(); };
   ov.querySelector("#mNo").onclick=close;
   const ok=ov.querySelector("#mOk"); if(ok) ok.onclick=()=>{ if(desmApply(o, p, c)) close(); };
 }
+function desmApplyRem(o, p, c){ // remessa de chegada: o que chegou da encomenda vai numa pré-venda nova (2ª etapa, área de recebimento → colmeia)
+  const now=Date.now(), by=ME.id||"", left={}; (p.items||[]).forEach(it=>left[it.code]=(left[it.code]||0)+(+it.qty||0));
+  const nr=(o.rems||[]).length+1, moved=[], items=[];
+  (o.items||[]).forEach((it,i)=>{ const take=Math.min(remLeft(it), left[it.code]||0); if(take<=0) return; left[it.code]-=take; moved.push({i, qty:take});
+    items.push({code:it.code, name:it.name, ean:it.ean||PRODUCTS[it.code]?.ean||"", un:it.un, qty:take, qtyEnc:take, price:it.price, loc:"", eta:"", ...(it.recMesa?{recMesa:it.recMesa}:{}), compra:{st:"chegou", arrivedAt:now, deOrig:{oid:o.id, i}}}); });
+  if(!items.length){ toast("Nenhum item da pré-venda nova está na encomenda"); return false; }
+  const pcs=items.reduce((s,x)=>s+x.qty,0), nid=c.sl.id;
+  const head={ id:nid, num:String(p.num), docType:p.docType||"", date:p.date||"", time:p.time||"", clientCode:p.clientCode||o.clientCode||"", client:p.client||o.client, city:p.city||o.city||"", seller:p.seller||o.seller||"",
+    obs:p.obs||"", total:p.total||0, mode:"aguarda", modeCom:"total", v2:true, items, res:null, remessa:1, canal:"consultiva", retira:!!o.retira, naLoja:!!o.naLoja,
+    transportadora: transpOf(o)||carrierFromObs(p.obs||"")||"", remDe:o.id, remDeNum:o.num, remN:nr, fase2:true, arrivedAt:now, arrivedBy:by, nfRecebida:o.nfRecebida||"",
+    status:"aguardando", queuedAt:now, createdAt:now, createdBy:by, decidedAt:now, decidedBy:by,
+    hist:[{t:now, by, ev:`${nr}ª remessa da #${o.num} (desmembrada por Compras) · ${pcs} pç da encomenda que chegou · guardar na colmeia junto com as outras remessas`}] };
+  saveOrder(head);
+  patchItems(o.id, its=>moved.forEach(m=>{ if(its[m.i]) its[m.i].encMoved=(+its[m.i].encMoved||0)+m.qty; }));
+  const back = o.remPrevSt && !["desmembrar","aguardando","separando"].includes(o.remPrevSt) ? o.remPrevSt : "encomenda";
+  patchOrder(o.id, {status:back, desmRem:false, remPrevSt:null, rems:[...(o.rems||[]), {id:nid, num:String(p.num), n:nr, at:now, by, items:moved}],
+    hist:[...(o.hist||[]), {t:now, by, ev:`${nr}ª remessa desmembrada por Compras: #${p.num} (${pcs} pç que chegaram) · continua aguardando o resto da encomenda`}]});
+  toast(`#${p.num} na fila · guardar na colmeia`);
+  return true;
+}
 function desmApply(o, p, c){
+  if(c.rem) return desmApplyRem(o, p, c);
+  const junto = desmKind(o)==="junto";
   const now=Date.now(), by=ME.id||"", got={}; (p.items||[]).forEach(it=>got[it.code]=(got[it.code]||0)+(+it.qty||0));
   const left={...got};
   const encItems=(o.items||[]).map(it=>{ const take=Math.min(it.qty, left[it.code]||0); left[it.code]=(left[it.code]||0)-take; const e=it.qty-take; return e>0 ? {...it, qty:e, qtyEnc:e} : null; }).filter(Boolean);
@@ -2559,13 +2632,13 @@ function desmApply(o, p, c){
     return {code:it.code, name:it.name, ean:it.ean||P?.ean||"", un:it.un, qty:it.qty, price:it.price, loc:"", qtyEnc:0, eta:""}; });
   const nid=c.sl.id, enc=encItems.reduce((s,x)=>s+x.qty,0), pcs=items.reduce((s,x)=>s+x.qty,0);
   const head={ num:String(p.num), docType:p.docType||"", date:p.date||"", time:p.time||"", clientCode:p.clientCode||o.clientCode||"", client:p.client||o.client, city:p.city||o.city||"", seller:p.seller||o.seller||"",
-    obs:p.obs||"", total:p.total||0, mode:"total", modeCom:"total", v2:true, items, res:null, remessa:1, canal:"consultiva", retira:!!o.retira, naLoja:!!o.naLoja,
-    transportadora: carrierFromObs(p.obs||"")||transpOf(o)||"", envio1De:o.id, envio1Num:o.num, decidedAt:now, decidedBy:by };
-  const ev={t:now, by, ev:`Pré-venda do 1º envio da #${o.num} (desmembrada por Compras) · ${pcs} pç da loja`};
+    obs:p.obs||"", total:p.total||0, mode: junto?"aguarda":"total", modeCom:"total", v2:true, items, res:null, remessa:1, canal:"consultiva", retira:!!o.retira, naLoja:!!o.naLoja,
+    transportadora: carrierFromObs(p.obs||"")||transpOf(o)||"", ...(junto ? {remDe:o.id, remDeNum:o.num, remN:1} : {envio1De:o.id, envio1Num:o.num}), decidedAt:now, decidedBy:by };
+  const ev={t:now, by, ev: junto ? `1ª remessa da #${o.num} (desmembrada por Compras) · ${pcs} pç da loja · guardar na colmeia até a encomenda chegar` : `Pré-venda do 1º envio da #${o.num} (desmembrada por Compras) · ${pcs} pç da loja`};
   saveOrder(c.ex ? {...c.ex, ...head, hist:[...(c.ex.hist||[]), ev]} : {id:nid, ...head, status:"aguardando", queuedAt:now, createdAt:now, createdBy:by, ...(c.sl.again?{reenvio:c.sl.again, reenvioDe:c.sl.last?.id||""}:{}), hist:[ev]});
-  patchOrder(o.id, {items:encItems, mode:"encomenda", status:"encomenda", res:null, envio1:{id:nid, num:String(p.num), at:now, by}, desmAt:now, desmBy:by,
-    hist:[...(o.hist||[]), {t:now, by, ev:`Desmembrada por Compras · 1º envio: #${p.num} (${pcs} pç da loja) · fica com a encomenda (${enc} pç)${c.diff?" · encomenda recalculada pela pré-venda nova":""}`}]});
-  toast(`#${p.num} na fila · #${o.num} aguarda a encomenda`);
+  patchOrder(o.id, {items:encItems, mode:"encomenda", status:"encomenda", res:null, ...(junto ? {rems:[{id:nid, num:String(p.num), n:1, at:now, by, loja:true}]} : {envio1:{id:nid, num:String(p.num), at:now, by}}), desmAt:now, desmBy:by,
+    hist:[...(o.hist||[]), {t:now, by, ev:`Desmembrada por Compras · ${junto?"1ª remessa":"1º envio"}: #${p.num} (${pcs} pç da loja) · fica com a encomenda (${enc} pç)${c.diff?" · encomenda recalculada pela pré-venda nova":""}`}]});
+  toast(junto ? `#${p.num} na fila · guardar na colmeia` : `#${p.num} na fila · #${o.num} aguarda a encomenda`);
   return true;
 }
 function decideOrder(oid){
@@ -2576,11 +2649,12 @@ function decideOrder(oid){
   if(pl.kind==="encomenda") patch={mode:"encomenda", status:"encomenda"};
   else if(pl.kind==="total") patch={mode:"total", status:"aguardando", queuedAt:now};
   else if(!isEco(o) && dqMode(o)==="parcial") patch={mode:"parcial", status:"desmembrar"}; // envio parcial: Compras desmembra a pré-venda antes da separação
+  else if(!isEco(o)) patch={mode:"aguarda", status:"desmembrar", queuedAt:null}; // tudo junto: Compras desmembra; a 1ª remessa (loja) vai para a colmeia
   else patch={mode:"aguarda", status:"aguardando", queuedAt:now}; // a colmeia é a que o separador bipar ao guardar
   patchOrder(oid, {...patch, items, res:null, decidedAt:now, decidedBy:ME.id||""});
   delete state.dq[oid]; if(state.dqm) delete state.dqm[oid];
   if(patch.status==="desmembrar") state.cTab="desmembrar";
-  toast(pl.kind==="encomenda" ? `#${o.num} · encomenda total` : patch.status==="desmembrar" ? `#${o.num} · importe a pré-venda do 1º envio` : `#${o.num} enviado à separação`);
+  toast(pl.kind==="encomenda" ? `#${o.num} · encomenda total` : patch.status==="desmembrar" ? `#${o.num} · importe a pré-venda ${patch.mode==="parcial"?"do 1º envio":"da 1ª remessa"}` : `#${o.num} enviado à separação`);
   rerender();
 }
 function compraCard(o, closed){
@@ -3421,6 +3495,10 @@ function applyReceipt(nfIdv, only){
     const all = encItems(o).every(x=>nfRecv(x) >= x.qtyEnc || x.compra?.st==="chegou");
     if(!all){ // chegou só parte da encomenda: separar o que chegou e guardar na colmeia; o resto continua aguardando
       const novo = encItems(o).reduce((t,x)=>{ const it=o.items[x.i]||{}; return t + Math.max(0, Math.min(x.qtyEnc, nfRecv(it)) - (+it.encStored||0)); },0);
+      if(o.rems?.length){ // remessas: o que chegou vai para uma remessa nova que Compras desmembra
+        const av=encItems(o).reduce((t,x)=>t+remAvail(o.items[x.i]||{}),0);
+        if(av>0 && !o.fase2 && o.status!=="desmembrar") patchOrder(oid, {status:"desmembrar", desmRem:true, remPrevSt:o.status, desmAskAt:Date.now(), hist:[...(o.hist||[]), {t:Date.now(), by:ME.id||"", ev:`Chegou parte da encomenda (NF ${n.num}) · Compras desmembra a ${(o.rems||[]).length+1}ª remessa`}]});
+        return; }
       if(novo>0 && !isEco(o) && !o.fase2 && canRelease(o)) startFase2(o, n, true);
       return; }
     patchItems(oid, items=>items.forEach(it=>{ if(it.qtyEnc>0) it.compra={...(it.compra||{}), st:"chegou", arrivedAt:n.received.at}; }));
@@ -3431,7 +3509,7 @@ function applyReceipt(nfIdv, only){
 function startFase2(o, n, parcial){
   const now=Date.now(), slotFor = !parcial && o.mode==="encomenda" && (o.retira||o.naLoja);
   const run=runOf(o), hasRun=!!(run.pickedAt||run.startedAt) || !!(run.storedAt && !(o.etapas||[]).some(e=>e.storedAt===run.storedAt));
-  patchOrder(o.id, { fase2:true, encParcial:!!parcial, ...(parcial ? {encPrev:{status:o.status, mode:o.mode, remessa:o.remessa||1, run}} : {encPrev:null, ...(hasRun?{etapas:[...(o.etapas||[]), {...run, colmeia:o.colmeia||null}]}:{})}), res1:o.res||null, res:null, status:"aguardando", queuedAt:now, arrivedAt:now, arrivedBy:ME.id||"", nfRecebida: n ? n.num : (o.nfRecebida||""),
+  patchOrder(o.id, { fase2:true, encParcial:!!parcial, ...(o.desmRem?{desmRem:false, remPrevSt:null}:{}), ...(parcial ? {encPrev:{status:o.status, mode:o.mode, remessa:o.remessa||1, run}} : {encPrev:null, ...(hasRun?{etapas:[...(o.etapas||[]), {...run, colmeia:o.colmeia||null}]}:{})}), res1:o.res||null, res:null, status:"aguardando", queuedAt:now, arrivedAt:now, arrivedBy:ME.id||"", nfRecebida: n ? n.num : (o.nfRecebida||""),
     tray:"", trayStatus:"", startedAt:null, pickedAt:null, pickedAtAprox:null, atMesaAt:null, ...(slotFor ? {mode:"aguarda"} : {}) });
 }
 
@@ -4899,8 +4977,8 @@ function renderPick(){
     <div class="pickcli ${isManual(o)?"manual":""}"><span>Cliente</span><b>${esc(o.client||"Não informado")}</b>${manualTag(o)}</div>
     ${o.mzCancelado?`<div class="mzcancel big">Pedido CANCELADO na Magazord · pare a separação e devolva as peças</div>`:o.mzMudou?`<div class="mzcancel big warn">A situação deste pedido mudou na Magazord para "${esc(o.mzSituacaoDesc||o.mzSituacao)}" · confirme com o responsável antes de continuar</div>`:""}
     ${urgBar(o,"margin-top:8px")}
-    ${juntaDest(o) ? `<div class="directbar hivebar">Juntar com a <b>#${esc(juntaDest(o).num)}</b> · no fim, guarde na colmeia <b>${esc(juntaDest(o).colmeia.slice(3))}</b>, junto com ela</div>` : ""}
-    ${o.fase2 && toHive(o) && !o.encParcial && !juntaDest(o) ? `<div class="directbar hivebar">Encomenda chegou · no fim, guarde ${o.colmeia?`na colmeia <b>${esc(o.colmeia.slice(3))}</b>, junto com o que já está lá (ou bipe outra)`:"numa <b>colmeia</b>: você escolhe uma livre ou junta com outra pré-venda"}. O cliente retira lá.</div>` : ""}
+    ${juntaDest(o) ? `<div class="directbar hivebar">Juntar com a <b>#${esc(juntaDest(o).num)}</b> · no fim, guarde na colmeia <b>${esc(juntaDest(o).colmeia.slice(3))}</b>, junto com ela</div>` : grpId(o) ? `<div class="directbar hivebar">${o.remDe?`${o.remN||""}ª remessa da #${esc(o.remDeNum||"")}`:"Última encomenda"} · no fim, guarde numa <b>colmeia</b>: sai tudo junto quando a encomenda chegar</div>` : ""}
+    ${o.fase2 && toHive(o) && !o.encParcial && !juntaDest(o) && !grpId(o) ? `<div class="directbar hivebar">Encomenda chegou · no fim, guarde ${o.colmeia?`na colmeia <b>${esc(o.colmeia.slice(3))}</b>, junto com o que já está lá (ou bipe outra)`:"numa <b>colmeia</b>: você escolhe uma livre ou junta com outra pré-venda"}. O cliente retira lá.</div>` : ""}
     ${o.fase2 && pl.some(x=>x.recMesa) ? `<div class="directbar"><span>Encomenda que chegou: as peças estão na <b>${[...new Set(pl.map(x=>x.recMesa).filter(Boolean))].map(m=>esc(mesaName(m))).join(", ")}</b>, onde o conferente deixou. Busque lá e <b>bipe a etiqueta da mesa</b> para desvincular.</span></div>` : ""}
     ${o.fase2 && o.encParcial ? `<div class="directbar hivebar"><span>Chegou <b>só parte da encomenda</b>. Separe estas peças e <b>guarde na colmeia</b>${o.colmeia?` <b>${esc(o.colmeia.slice(3))}</b>, onde o pedido já está`:""}: o pedido continua aguardando o restante.</span></div>` : ""}
     ${o.fase2 && !toHive(o) && o.colmeia ? `<div class="directbar hivebar"><span>Este pedido tem peças guardadas na <b>colmeia ${esc(o.colmeia.slice(3))}</b> aguardando a encomenda. Busque lá também e finalize tudo na sua mesa.</span></div>` : ""}
@@ -5029,6 +5107,14 @@ function finishStore(o){
     if(fromPick){ state.view="done"; render(); scrollTo(0,0); return; }
     state.fromMesa=false; state.mesaLast=o.id; state.view="mesa"; render(); scrollTo(0,0); return;
   }
+  if(grpId(o)){ // remessas: guardam na colmeia; o grupo fica pronto quando a original (última encomenda) é guardada
+    const g=grpId(o), O=ORDERS.find(x=>x.id===g), now=Date.now(), last = o.id===g, ready = last || (O && O.status==="pronto_envio" && !O.fase2);
+    patchOrder(o.id, {status: ready ? "pronto_envio" : "na_colmeia", mode:"aguarda", fase2:false, trayStatus:o.trayStatus||"", storedAt:now, res:res(o),
+      hist:[...(o.hist||[]), {t:now, by:ME.id||"", ev: last ? `Última encomenda guardada na colmeia ${(o.colmeia||"").slice(3)} · pedido completo, pronto para ${o.retira||o.naLoja?"o cliente retirar":"enviar"}` : `${o.remN?o.remN+"ª remessa":"Remessa"} guardada na colmeia ${(o.colmeia||"").slice(3)} · aguardando o resto da encomenda`}]});
+    if(last) grpMembers(g).filter(x=>x.id!==g && x.status==="na_colmeia").forEach(x=>patchOrder(x.id, {status:"pronto_envio", hist:[...(x.hist||[]), {t:now, by:ME.id||"", ev:`Encomenda completa (#${o.num}) · pronto para ${o.retira||o.naLoja?"o cliente retirar":"enviar"} junto`}]}));
+    if(fromPick){ state.view="done"; render(); scrollTo(0,0); return; }
+    state.fromMesa=false; state.mesaLast=o.id; state.view="mesa"; render(); scrollTo(0,0); return;
+  }
   patchOrder(o.id, {status: o.fase2 || o.mode!=="aguarda" ? "pronto_envio" : "na_colmeia", trayStatus: o.trayStatus||"", storedAt:Date.now(), res:res(o)}); // 2ª etapa: tudo na colmeia, pronto para retirar
   { const j=juntaDest(o), now=Date.now(); if(j && j.colmeia===o.colmeia){ // juntou com a outra pré-venda: as duas ficam prontas
       patchOrder(o.id, {hist:[...(o.hist||[]), {t:now, by:ME.id||"", ev:`Guardada na colmeia ${o.colmeia.slice(3)} junto com a #${j.num}`}]});
@@ -5069,7 +5155,7 @@ function finishAtMesa(o){
   if(!got){ patchOrder(o.id, {status:"pronto_envio", remessa:1, pickedAt:now, semPecas:true, res:r, ...(o.tray?{trayStatus:"livre"}:{})}); toast(`Pedido ${o.num} sem peças`); state.view="done"; render(); scrollTo(0,0); return; }
   if(toHive(o)){ // o separador escolhe a colmeia: bipa a etiqueta de onde vai guardar
     const jd=juntaDest(o);
-    patchOrder(o.id, {status:"na_mesa", pickedAt:now, atMesaAt:now, pickedBy:ME.id||"", res:r, ...(jd?{colmeia:jd.colmeia, mode:"aguarda"}:{}), ...(hasTray(o)?{trayStatus:"mesa"}:{})});
+    patchOrder(o.id, {status:"na_mesa", pickedAt:now, atMesaAt:now, pickedBy:ME.id||"", res:r, ...(jd?{colmeia:jd.colmeia, mode:"aguarda"}:grpId(o)?{mode:"aguarda"}:{}), ...(hasTray(o)?{trayStatus:"mesa"}:{})});
     toast("Separação concluída");
     state.view="store"; render(); scrollTo(0,0); setMsg(o.colmeia ? `Guarde na colmeia ${o.colmeia.slice(3)} (onde o pedido já está) ou bipe outra` : "Bipe a colmeia onde vai guardar o pedido","info"); return;
   }
