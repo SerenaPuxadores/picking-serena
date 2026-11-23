@@ -2261,7 +2261,7 @@ const decPend = o => (o.items||[]).some(it=>it.qtyDec>0);
 const encArrived = o => !!o.arrivedAt || (o.mode==="parcial" && o.remessa===2);
 const encOpen = o => !isEco(o) && !["enviado","excluido","analise_compras"].includes(o.status) && encItems(o).length>0 && !encArrived(o);
 const toDecide = o => o.status==="analise_compras" || (decPend(o) && !["enviado","excluido"].includes(o.status));
-const canRelease = o => (o.status==="desmembrar" && o.desmRem) || (o.status==="pronto_envio" && !!o.colmeia && !o.fase2 && o.mode!=="parcial") || o.status==="na_colmeia" || o.status==="encomenda" || o.status==="enc_pendente" || (o.status==="pronto_envio" && o.mode==="parcial" && o.remessa!==2);
+const canRelease = o => (o.status==="desmembrar" && o.desmRem) || (o.status==="pronto_envio" && !!o.colmeia && !o.fase2 && !o.arrivedAt && !grpId(o) && o.mode!=="parcial") || o.status==="na_colmeia" || o.status==="encomenda" || o.status==="enc_pendente" || (o.status==="pronto_envio" && o.mode==="parcial" && o.remessa!==2);
 const compraSt = it => it.compra?.st==="chegou" ? "chegou" : nfRecv(it)>=it.qtyEnc && it.qtyEnc>0 ? "chegou" : nfQty(it)>=it.qtyEnc && it.qtyEnc>0 ? "faturado" : nfQty(it)>0 ? "fatparc" : (it.compra?.links||[]).reduce((s,l)=>s+(+l.qty||0),0) >= it.qtyEnc ? "pedido" : (it.compra?.links||[]).length ? "parcial" : "falta";
 const compraQty = it => (it.compra?.links||[]).reduce((s,l)=>s+(+l.qty||0),0);
 function encKind(o){
