@@ -73,6 +73,61 @@ function distinct(list: any[]) {
   return out;
 }
 
+/* ================== Prazo de despacho do Mercado Livre ==================
+   Na importação, todo pedido do ML consulta o envio e o SLA no Mercado Livre (mesma conexão do app Envio Full,
+   tabela full_ml_auth) e entra no Picking já com mlPrazo = { limite, sla, tipo, envio, st, sub, at }.
+   O prazo é definido na venda, então é consultado uma vez só. Se o ML não responder, o pedido entra sem prazo
+   e a próxima importação (2 min) tenta de novo só os que ficaram sem prazo (até 5 tentativas).
+   codigoMarketplace "2000…" = pedido ou carrinho (pack); "S-4860…" = já é o número do envio. */
+const ML = "https://api.mercadolibre.com";
+const ML_ID = Deno.env.get("ML_CLIENT_ID") || "770978757588091";
+const espera = (ms: number) => new Promise((z) => setTimeout(z, ms));
+const isML = (o: any) => /mercado\s*livre/i.test(String(o?.origem || ""));
+async function mlAuth() { const { data, error } = await sb.from("full_ml_auth").select("access_token,refresh_token,expira").eq("id", 1).maybeSingle(); if (error) throw error; return data; }
+// o refresh_token do ML só vale uma vez: renova com folga e só grava se o Envio Full não renovou no meio do caminho
+async function mlToken(): Promise<string> {
+  const a = await mlAuth();
+  if (!a || (!a.refresh_token && !a.access_token)) throw new Error("Mercado Livre não conectado (conecte pelo app Envio Full).");
+  if (a.access_token && new Date(a.expira).getTime() > Date.now() + 600000) return a.access_token;
+  if (!a.refresh_token) throw new Error("Conexão com o Mercado Livre expirada (conecte de novo pelo app Envio Full).");
+  const sec = Deno.env.get("ML_CLIENT_SECRET"); if (!sec) throw new Error("Falta a ML_CLIENT_SECRET nos secrets das Edge Functions.");
+  const r = await fetch(`${ML}/oauth/token`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
+    body: new URLSearchParams({ grant_type: "refresh_token", client_id: ML_ID, client_secret: sec, refresh_token: a.refresh_token }) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    await espera(1500); const b = await mlAuth();
+    if (b?.access_token && b.access_token !== a.access_token && new Date(b.expira).getTime() > Date.now() + 60000) return b.access_token;
+    if (a.access_token && new Date(a.expira).getTime() > Date.now() + 30000) return a.access_token;
+    throw new Error(`Mercado Livre recusou a renovação do token: ${j.message || j.error || r.status}`);
+  }
+  await sb.from("full_ml_auth").update({ access_token: j.access_token, refresh_token: j.refresh_token || a.refresh_token,
+    expira: new Date(Date.now() + (j.expires_in || 21600) * 1000).toISOString(), msg: null, updated_at: new Date().toISOString() }).eq("id", 1).eq("refresh_token", a.refresh_token);
+  return j.access_token;
+}
+async function mlGet(tk: string, path: string): Promise<{ status: number; body: any }> {
+  for (let t = 0; t < 3; t++) {
+    const r = await fetch(ML + path, { headers: { authorization: `Bearer ${tk}`, accept: "application/json" } });
+    if (r.status === 429 || r.status >= 500) { await espera(1000 * 2 ** t); continue; }
+    return { status: r.status, body: await r.json().catch(() => ({})) };
+  }
+  return { status: 429, body: {} };
+}
+async function mlPrazo(tk: string, cod: string, envioAnt?: string) {
+  const c = String(cod || "").trim();
+  let envio = envioAnt || (c.match(/^S-?(\d{6,})$/i) || [])[1] || "";
+  if (!envio && /^\d{10,}$/.test(c)) {
+    const o = await mlGet(tk, `/orders/${c}`);
+    if (o.status === 200 && o.body?.shipping?.id) envio = String(o.body.shipping.id);
+    else { const p = await mlGet(tk, `/packs/${c}`); if (p.status === 200 && p.body?.shipment?.id) envio = String(p.body.shipment.id); }
+  }
+  if (!envio) throw new Error("envio não encontrado no Mercado Livre");
+  const [sh, sla] = await Promise.all([mlGet(tk, `/shipments/${envio}`), mlGet(tk, `/shipments/${envio}/sla`)]);
+  const S = sh.status === 200 ? sh.body : {}, L = sla.status === 200 ? sla.body : {};
+  const limite = L?.expected_date || S?.shipping_option?.estimated_handling_limit?.date || S?.lead_time?.estimated_handling_limit?.date || null;
+  if (!limite) throw new Error(`prazo indisponível (envio ${envio}, ${sh.status}/${sla.status})`);
+  return { envio, limite, sla: L?.status || null, tipo: S?.logistic_type || null, st: S?.status || null, sub: S?.substatus || null, at: Date.now() };
+}
+
 /* ================== Importação dos pedidos ================== */
 const SITUACAO_IMPORTAR = 5;             // Crédito e Cadastro Aprovados
 const IGNORAR_CANAL = /full/i;           // Mercado Livre Full: sai do armazém do Mercado Livre
@@ -135,6 +190,9 @@ async function sync(horas = JANELA_HORAS) {
   const have = new Map<string, any>();
   for (let i = 0; i < ids.length; i += 200) { const { data } = await sb.from("orders").select("id,data").in("id", ids.slice(i, i + 200)); (data || []).forEach((x) => have.set(x.id, x.data)); }
   let imported = 0, cancelled = 0, changed = 0, restored = 0; const errors: string[] = [];
+  let tkML: string | null = null, tkErr = "";
+  const tkGet = async () => { if (tkML) return tkML; if (tkErr) throw new Error(tkErr); try { return tkML = await mlToken(); } catch (e) { tkErr = (e as Error).message; throw e; } };
+  let prazos = 0;
   for (const o of eligible) {
     const cur = have.get("MZ-" + o.id);
     if (cur) {
@@ -151,10 +209,24 @@ async function sync(horas = JANELA_HORAS) {
       if (d.status >= 400 || !det || typeof det !== "object") throw new Error("detalhe " + d.status);
       const ord = mapOrder(det, idx);
       if (!ord.items.length) continue;
+      if (isML(ord) && ord.codigoMarketplace) { // prazo de despacho do ML: se falhar, entra sem prazo e tenta na próxima
+        try { (ord as any).mlPrazo = await mlPrazo(await tkGet(), ord.codigoMarketplace); prazos++; }
+        catch (e) { (ord as any).mlPrazo = { erro: (e as Error).message.slice(0, 120), tent: 1, at: Date.now() }; errors.push(`${o.codigo} (prazo ML): ${(e as Error).message}`); }
+      }
       const { error } = await sb.from("orders").insert({ id: ord.id, data: ord });
       if (error) { if (!/duplicate|unique/i.test(error.message)) throw error; } else imported++;
     } catch (e) { errors.push(`${o.codigo}: ${(e as Error).message}`); }
   }
+  // pedidos do ML na fila que ficaram sem prazo (ML fora do ar, token): tenta de novo, até 5 vezes
+  { const { data: sem } = await sb.from("orders").select("id,data").like("id", "MZ-%").filter("data->>origem", "ilike", "%mercado%livre%")
+      .filter("data->>status", "in", "(aguardando,separando)").is("data->mlPrazo->>limite", null).limit(20);
+    for (const row of (sem || [])) {
+      const ant = row.data?.mlPrazo || {}; if (!row.data?.codigoMarketplace || (ant.tent || 0) >= 5) continue;
+      let p: Record<string, unknown>;
+      try { p = await mlPrazo(await tkGet(), row.data.codigoMarketplace, ant.envio); prazos++; }
+      catch (e) { p = { ...ant, erro: (e as Error).message.slice(0, 120), tent: (ant.tent || 0) + 1, at: Date.now() }; }
+      await sb.rpc("ml_prazo_set", { p_id: row.id, p_prazo: p }); // só o campo mlPrazo (não sobrescreve o que a expedição mudou)
+    } }
   // pedidos do e-commerce ainda na fila cuja situação mudou na Magazord (qualquer situação diferente da 5): saem da fila
   const elig = new Set(fetched.map((o) => "MZ-" + o.id)); // ainda na situação 5 (mesmo fora da janela de dias)
   const { data: active } = await sb.from("orders").select("id,data").like("id", "MZ-%").filter("data->>status", "in", "(aguardando,separando)");
@@ -174,7 +246,7 @@ async function sync(horas = JANELA_HORAS) {
     } catch (e) { errors.push(`${row.data.num}: ${(e as Error).message}`); }
   }
   const full = fetched.filter((o) => IGNORAR_CANAL.test(String(o.lojaDoMarketplaceNome || ""))).length;
-  const info = { lastRun: Date.now(), ms: Date.now() - t0, horas, found: eligible.length, full, old: fetched.length - eligible.length - full, imported, cancelled, changed, restored, errors: errors.slice(0, 5) };
+  const info = { lastRun: Date.now(), ms: Date.now() - t0, horas, found: eligible.length, full, old: fetched.length - eligible.length - full, imported, prazos, cancelled, changed, restored, errors: errors.slice(0, 5) };
   await sb.from("config").upsert({ id: "magazord_sync", data: info, updated_at: new Date().toISOString() }, { onConflict: "id" });
   return info;
 }

@@ -14,6 +14,8 @@ supabase/schema.sql     tabelas, regras de acesso (RLS) e tempo real
 supabase/push.sql       notificações push (inscrições + gatilho de novo pedido)
 supabase/functions/push função que envia o push (Supabase Edge Function)
 supabase/functions/admin-users  criação de usuários e troca de senha pelo administrador
+supabase/functions/magazord  importação dos pedidos do e-commerce (Magazord), já com o prazo de despacho do Mercado Livre
+supabase/ml_prazos.sql  função que grava o prazo do Mercado Livre no pedido
 sw.js                   service worker: mostra a notificação com o app fechado
 supabase/seed-exemplo.sql  dados de exemplo (opcional)
 vercel.json             cabeçalhos (libera a câmera no próprio site)
