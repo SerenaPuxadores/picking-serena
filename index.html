@@ -388,6 +388,7 @@ html.tvmode body{background:var(--bg);color:var(--ink);overflow:hidden}
 .tvunlock{position:fixed;left:50%;bottom:3vh;transform:translateX(-50%);z-index:50;background:#B42318;color:#fff;border-radius:18px;padding:1.1em 2em;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.45);cursor:pointer;animation:tvunl 1.6s ease-in-out infinite;max-width:80vw}
 .tvlast{display:block;font-size:.72em;opacity:.75;max-width:22em;line-height:1.2;text-align:right}.tvunlock b{display:block;font-size:1.5em}.tvunlock small{display:block;font-size:.95em;opacity:.9;margin-top:.35em}
 @keyframes tvunl{50%{box-shadow:0 0 0 14px rgba(180,35,24,.25),0 12px 40px rgba(0,0,0,.45)}}
+.tvprazo{font-style:normal;font-family:var(--display);font-size:.75em;border-radius:.3em;padding:.05em .4em;margin-left:.3em;border:1px solid var(--muted);color:var(--ink)}.tvprazo.hoje{background:var(--accent);border-color:var(--accent);color:#111}.tvprazo.atrasado{background:var(--bad);border-color:var(--bad);color:#fff}
 .tvcanais{color:var(--ink);letter-spacing:.04em;margin-left:.3em}
 .tvnone{color:var(--muted);padding:.6em .2em}.tvnone.ok{color:var(--ok);font-weight:600}
 .tvmore{color:var(--muted);font-size:.9em;padding:.2em .3em}
@@ -4467,6 +4468,13 @@ const USERS_NAME = id => { const n = id && document.querySelector(`[data-uid="${
 /* ================== Painel TV da fila de separação ================== */
 const TV_CANAIS = [["consultiva","Venda Consultiva"],["ecommerce","E-commerce"]];
 let tvRefreshT=null;
+/* tag com a data de envio do Mercado Livre (mlPrazo, gravado na importação) */
+function tvPrazoTag(o){
+  const f=mlFase(o); if(!f) return "";
+  const d=new Date(mlLim(o)), hm=d.getHours()===23&&d.getMinutes()===59 ? "" : ` ${String(d.getHours()).padStart(2,"0")}h${d.getMinutes()?String(d.getMinutes()).padStart(2,"0"):""}`;
+  const t = f==="atrasado" ? "ENVIO ATRASADO" : f==="hoje" ? `ENVIO HOJE${hm}` : f==="amanha" ? `ENVIO AMANHÃ${hm}` : `ENVIO ${d.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"})}`;
+  return ` <em class="tvprazo ${f}">${t}</em>`;
+}
 function tvColumn(canal, title){
   const today=new Date().toDateString(), isToday=t=>t && new Date(t).toDateString()===today, now=Date.now();
   const mine = ORDERS.filter(o=>(o.canal||"consultiva")===canal);
@@ -4497,7 +4505,7 @@ function tvColumn(canal, title){
       ${doing.length>MAXD?`<div class="tvmore">+ ${doing.length-MAXD} em separação</div>`:""}</div>
     <h3>Aguardando separação · ${queue.length}${canal==="ecommerce" && queue.length ? (()=>{ const m={}; queue.forEach(o=>{ const v=o.origem||"Site"; m[v]=(m[v]||0)+1; });
       return ` <span class="tvcanais">(${Object.entries(m).sort((a,b)=>b[1]-a[1]).map(([v,n])=>`${esc(v)} ${n}`).join(" - ")})</span>`; })() : ""}</h3>
-    <div class="tvlist fit" data-total="${queue.length}">${queue.slice(0,MAXQ).map((o,k)=>`<div class="tvrow ${urgKind(o)?"tvurg"+(naLojaNow(o)?"":" green"):lvl(wait(o))}"><span class="tvpos tnum">${k+1}</span><span class="tvnum">#${esc(o.num)}${urgKind(o)?` <em class="tvurgtag ${naLojaNow(o)?"":"green"}">${urgText(o)}</em>`:""}${now-(o.createdAt||0)<5*60e3?` <em class="tvnew">NOVO</em>`:""}</span>
+    <div class="tvlist fit" data-total="${queue.length}">${queue.slice(0,MAXQ).map((o,k)=>`<div class="tvrow ${urgKind(o)?"tvurg"+(naLojaNow(o)?"":" green"):lvl(wait(o))}"><span class="tvpos tnum">${k+1}</span><span class="tvnum">#${esc(o.num)}${urgKind(o)?` <em class="tvurgtag ${naLojaNow(o)?"":"green"}">${urgText(o)}</em>`:""}${tvPrazoTag(o)}${now-(o.createdAt||0)<5*60e3?` <em class="tvnew">NOVO</em>`:""}</span>
         <span class="tvcli">${esc(o.client)}<small>${o.fase2?`<b>${o.encParcial?"Parte da encomenda chegou · guardar na colmeia":"Encomenda chegou"}${(()=>{ const m=[...new Set((o.items||[]).map(i=>i.recMesa).filter(Boolean))]; return m.length?" · buscar na "+m.map(mesaName).join(", "):""; })()}</b> · `:""}${pickList(o).length} ref. · ${units(o)} pç · ${isEco(o) ? esc((o.origem||"Site")+(o.transportadora?" · "+o.transportadora:"")) : esc(MODES[o.mode]?.t||"")+(transpOf(o)?" · "+esc(transpOf(o)):"")}</small></span>
         <span class="tvtime tnum"><span data-since="${o.createdAt}">${fmtDur(wait(o))}</span></span></div>`).join("") || `<div class="tvnone ok">Fila vazia</div>`}
 </div><div class="tvmore" data-more>${queue.length>MAXQ?`+ ${queue.length-MAXQ} pedidos na fila`:""}</div>
