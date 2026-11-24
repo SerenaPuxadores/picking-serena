@@ -76,7 +76,7 @@ function distinct(list: any[]) {
 /* ================== Prazo de despacho do Mercado Livre ==================
    Na importação, todo pedido do ML consulta o envio e o SLA no Mercado Livre (mesma conexão do app Envio Full,
    tabela full_ml_auth) e entra no Picking já com mlPrazo = { limite, sla, tipo, envio, st, sub, at }.
-   O prazo é definido na venda, então é consultado uma vez só. Se o ML não responder, o pedido entra sem prazo
+   O dia é definido na venda, mas o ML pode acertar a hora de corte depois (reconsulta a cada 30 min, só prazos de hoje/amanhã). Se o ML não responder, o pedido entra sem prazo
    e a próxima importação (2 min) tenta de novo só os que ficaram sem prazo (até 5 tentativas).
    codigoMarketplace "2000…" = pedido ou carrinho (pack); "S-4860…" = já é o número do envio. */
 const ML = "https://api.mercadolibre.com";
@@ -226,6 +226,20 @@ async function sync(horas = JANELA_HORAS) {
       try { p = await mlPrazo(await tkGet(), row.data.codigoMarketplace, ant.envio); prazos++; }
       catch (e) { p = { ...ant, erro: (e as Error).message.slice(0, 120), tent: (ant.tent || 0) + 1, at: Date.now() }; }
       await sb.rpc("ml_prazo_set", { p_id: row.id, p_prazo: p }); // só o campo mlPrazo (não sobrescreve o que a expedição mudou)
+    } }
+  // o ML acerta a HORA de corte depois da venda (ex.: 16:00 virou 13:30 na impressão da etiqueta; o dia não muda).
+  // Pedidos do ML ainda não enviados, com prazo para hoje ou amanhã: confere de novo a cada 30 min e regrava.
+  { const dia = (t: number) => new Date(t - 3 * 36e5).toISOString().slice(0, 10); // dia em Brasília
+    const amanha = dia(Date.now() + 864e5);
+    const { data: rec } = await sb.from("orders").select("id,data").like("id", "MZ-%").filter("data->>origem", "ilike", "%mercado%livre%")
+      .filter("data->>status", "in", "(aguardando,separando,na_mesa,na_colmeia,pronto_envio)").gt("data->>createdAt", String(Date.now() - 6 * 864e5));
+    const alvo = (rec || []).filter((r: any) => { const p = r.data?.mlPrazo; if (!p?.limite || !p.envio) return false;
+      const d = String(p.limite).slice(0, 10); return (d <= amanha) && d >= dia(Date.now() - 864e5) && Date.now() - (p.at || 0) > 30 * 60e3; }).slice(0, 25);
+    for (const r of alvo) {
+      try { const ant = r.data.mlPrazo, p = await mlPrazo(await tkGet(), r.data.codigoMarketplace, ant.envio);
+        if (p.limite !== ant.limite) prazos++;
+        await sb.rpc("ml_prazo_set", { p_id: r.id, p_prazo: p });
+      } catch (e) { errors.push(`${r.data.num} (reconsulta ML): ${(e as Error).message}`); }
     } }
   // pedidos do e-commerce ainda na fila cuja situação mudou na Magazord (qualquer situação diferente da 5): saem da fila
   const elig = new Set(fetched.map((o) => "MZ-" + o.id)); // ainda na situação 5 (mesmo fora da janela de dias)

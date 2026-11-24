@@ -392,6 +392,7 @@ html.tvmode body{background:var(--bg);color:var(--ink);overflow:hidden}
 .tvcanais{color:var(--ink);letter-spacing:.04em;margin-left:.3em}
 .tvnone{color:var(--muted);padding:.6em .2em}.tvnone.ok{color:var(--ok);font-weight:600}
 .tvmore{color:var(--muted);font-size:.9em;padding:.2em .3em}
+.tvmlalert{display:flex;align-items:baseline;flex-wrap:wrap;gap:.2em .8em;background:var(--accent);color:#111;border-radius:.6em;padding:.55em .9em;margin:-.1em 0 .7em}.tvmlalert b{font-family:var(--display);font-size:1.25em}.tvmlalert span{font-weight:600}.tvmlalert.bad{background:var(--bad);color:#fff}
 .tvsoon{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6em;color:var(--muted);text-align:center;border:2px dashed var(--line);border-radius:1em;margin-top:1em}
 .tvsoon b{color:var(--ink);font-size:1.4em}
 @media (max-width:900px){ .app.tv{height:auto;font-size:14px} html.tvmode body{overflow:auto} .tvgrid{grid-template-columns:1fr} .tvkpis{grid-template-columns:repeat(3,1fr)} }
@@ -4468,6 +4469,40 @@ const USERS_NAME = id => { const n = id && document.querySelector(`[data-uid="${
 /* ================== Painel TV da fila de separação ================== */
 const TV_CANAIS = [["consultiva","Venda Consultiva"],["ecommerce","E-commerce"]];
 let tvRefreshT=null;
+/* Envio do Mercado Livre: da 2 h antes da hora de corte até a hora, a TV mostra uma faixa e, ao entrar na janela, fala
+   "Atenção! Faltam duas horas para o envio do Mercado Livre" (uma vez por horário de corte em cada TV).
+   Vale para pedidos do ML ainda não enviados com prazo de hoje e hora definida (sem etiqueta liberada o ML não dá a hora). */
+const ML_AV_JAN=2*36e5;
+function mlEnvioProx(now=Date.now()){
+  const m=new Map();
+  ORDERS.forEach(o=>{ if(!isEco(o) || ["excluido","enviado"].includes(o.status) || o.deletedAt) return; const t=mlLim(o); if(t==null) return;
+    const d=new Date(t); if(d.getHours()===23 && d.getMinutes()===59) return; if(now<t-ML_AV_JAN || now>=t) return;
+    const g=m.get(t)||{t, n:0, fila:0}; g.n++; if(["aguardando","separando"].includes(o.status)) g.fila++; m.set(t,g); });
+  return [...m.values()].sort((a,b)=>a.t-b.t);
+}
+const hhmm = t => { const d=new Date(t); return `${String(d.getHours()).padStart(2,"0")}h${d.getMinutes()?String(d.getMinutes()).padStart(2,"0"):""}`; };
+function tvMlAlertHtml(){
+  const g=mlEnvioProx()[0]; if(!g) return "";
+  const r=Math.max(0,g.t-Date.now()), h=Math.floor(r/36e5), mi=Math.floor(r%36e5/6e4), falta=h?`${h}h${String(mi).padStart(2,"0")}`:`${mi} min`;
+  return `<div class="tvmlalert ${r<30*6e4?"bad":""}"><b>Envio do Mercado Livre às ${hhmm(g.t)}</b><span>faltam ${falta} · ${g.n} ${g.n===1?"pedido":"pedidos"}${g.fila?` · ${g.fila} ainda na separação`:" · todos separados"}</span></div>`;
+}
+let ML_AV_SAID={}; try{ ML_AV_SAID=JSON.parse(localStorage.getItem("ps_mlav")||"{}"); }catch(e){}
+function tvMlTick(){
+  if(IS_SHOWROOM || !(state.view==="tv" || myRole()==="painel")) return;
+  const now=Date.now(), g=mlEnvioProx(now).find(x=>!ML_AV_SAID[x.t] && now-(x.t-ML_AV_JAN)<10*6e4); // só nos primeiros 10 min da janela
+  if(!g || !tvVoiceFree()) return;
+  ML_AV_SAID[g.t]=now; Object.keys(ML_AV_SAID).forEach(k=>{ if(now-(+k)>864e5) delete ML_AV_SAID[k]; });
+  try{ localStorage.setItem("ps_mlav", JSON.stringify(ML_AV_SAID)); }catch(e){}
+  chime(true, true); render();
+  setTimeout(async ()=>{
+    try{ if(audioCtx && audioCtx.state!=="running") await Promise.race([audioCtx.resume(), new Promise(ok=>setTimeout(ok,800))]); }catch(e){}
+    const ok = await Promise.race([tvVoiceLoad(), new Promise(r=>setTimeout(()=>r(false),4000))]);
+    if(ok && audioCtx && audioCtx.state==="running" && TVV.buf.ml2h) tvPlay([["ml2h",0]]);
+    else tvSay("Atenção! Faltam duas horas para o envio do Mercado Livre.");
+    TVV.last={num:"Envio ML "+hhmm(g.t), at:Date.now(), via:"aviso de 2 h"}; const el=document.getElementById("tvLast"); if(el) el.textContent=tvLastTxt();
+  }, 1700);
+}
+setInterval(tvMlTick, 15000);
 /* número do pedido na TV: os do e-commerce são longos (0012611045671); mostra só o final, que é o que muda, e sobra espaço para o cliente */
 const tvNum = o => { const n=String(o.num||""); return n.length>8 ? `<span title="#${esc(n)}">#…${esc(n.slice(-6))}</span>` : `#${esc(n)}`; };
 /* tag com a data de envio do Mercado Livre (mlPrazo, gravado na importação) */
@@ -4490,7 +4525,7 @@ function tvColumn(canal, title){
   const MAXQ=40, MAXD=4, MAXF=3;
   const empty = !mine.length;
   return `<section class="tvcol">
-    <h2>${esc(title)}</h2>
+    <h2>${esc(title)}</h2>${canal==="ecommerce"?tvMlAlertHtml():""}
     <div class="tvkpis">
       <div><b class="tnum">${queue.length}</b><small>Na fila</small></div>
       <div><b class="tnum">${doing.length}</b><small>Em separação</small></div>
@@ -7097,7 +7132,7 @@ function tvVoiceLoad(){
   if(TVV.p) return TVV.p;
   try{ audioCtx ||= new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return Promise.resolve(false); }
   const names=["atencao","aguarda","ligado","pv","cem","cfpc","maisde","diasar","diaar", ..."ABCDEFGHIJK".split("").map(c=>"l"+c), ...Array.from({length:10},(_,i)=>"d"+i), ...Array.from({length:10},(_,i)=>"t"+(10+i)),
-    ...[2,3,4,5,6,7,8,9].flatMap(i=>["x"+i,"x"+i+"e"]), "h1e", ...[2,3,4,5,6,7,8,9].flatMap(i=>["h"+i,"h"+i+"e"])];
+    ...[2,3,4,5,6,7,8,9].flatMap(i=>["x"+i,"x"+i+"e"]), "h1e", ...[2,3,4,5,6,7,8,9].flatMap(i=>["h"+i,"h"+i+"e"]), "ml2h"];
   TVV.p = Promise.all(names.map(n=>fetch(TV_TTS+n+(TV_TTS_V[n]?"_v"+TV_TTS_V[n]:"")+".mp3").then(r=>{ if(!r.ok) throw new Error(n); return r.arrayBuffer(); })
       .then(a=>new Promise((ok,ko)=>audioCtx.decodeAudioData(a,ok,ko))).then(b=>[n,tvTrim(b)])));
   TVV.p = Promise.race([TVV.p, new Promise((_,ko)=>setTimeout(()=>ko(new Error("tempo esgotado")),15000))]) // não fica preso se a rede travar; tenta de novo no próximo aviso
@@ -7158,7 +7193,7 @@ async function tvAnnounce(num){
   TVV.last = {num, at:Date.now(), via};
   const el=document.getElementById("tvLast"); if(el) el.textContent=tvLastTxt();
 }
-const tvLastTxt = () => TVV.last ? `Último aviso de voz: #${TVV.last.num} às ${new Date(TVV.last.at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})} · ${TVV.last.via}` : "";
+const tvLastTxt = () => TVV.last ? `Último aviso de voz: ${/^\d/.test(TVV.last.num)?"#":""}${TVV.last.num} às ${new Date(TVV.last.at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})} · ${TVV.last.via}` : "";
 let tvLastSync=Date.now(), tvAudioSeen="";
 function tvAnnounceTick(){
   if(IS_SHOWROOM || !(state.view==="tv" || myRole()==="painel")) return;
