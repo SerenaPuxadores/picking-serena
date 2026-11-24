@@ -1288,10 +1288,12 @@ const remTag = o => o?.remDe ? ` <span class="chip enc" title="Remessa da pré-v
 const envTag = o => remTag(o) + (o?.envio1De ? ` <span class="chip envtag" title="Pré-venda desmembrada da #${esc(o.envio1Num||"")}: itens da loja. A encomenda segue na #${esc(o.envio1Num||"")}.">Com Encomenda - 1° Envio</span>`
   : o?.envio1 ? ` <span class="chip enc" title="Pré-venda desmembrada: o 1º envio saiu como #${esc(o.envio1.num)}">1º envio: #${esc(o.envio1.num)}</span>` : "") + (o?.juntar ? ` <span class="chip enc" title="Na separação, guarde junto com a #${esc(o.juntar.num)} na colmeia dela">Juntar com #${esc(o.juntar.num)}${juntaDest(o)?" · "+esc(juntaDest(o).colmeia.slice(3)):""}</span>` : "");
 function parsePresale(raw){
-  const cells = raw.filter(c=>c.s && c.s.trim()).map(c=>({s:c.s.trim(), x:c.x, y:c.y, w:c.w, cx:c.x+c.w/2}));
-  const lines=[];
-  [...cells].sort((a,b)=>b.y-a.y||a.x-b.x).forEach(c=>{ let L=lines.find(l=>Math.abs(l.y-c.y)<2.5); if(!L){ L={y:c.y,cells:[]}; lines.push(L); } L.cells.push(c); });
-  const all = lines.map(l=>l.cells.sort((a,b)=>a.x-b.x).map(c=>c.s).join(" ")).join("\n");
+  // raw: lista de textos de uma página, ou lista de páginas (PDF com mais de uma página)
+  const pages = (Array.isArray(raw[0]) ? raw : [raw]).map(pg=>pg.filter(c=>c.s && c.s.trim()).map(c=>({s:c.s.trim(), x:c.x, y:c.y, w:c.w, cx:c.x+c.w/2})));
+  const textOf = cells => { const lines=[];
+    [...cells].sort((a,b)=>b.y-a.y||a.x-b.x).forEach(c=>{ let L=lines.find(l=>Math.abs(l.y-c.y)<2.5); if(!L){ L={y:c.y,cells:[]}; lines.push(L); } L.cells.push(c); });
+    return lines.map(l=>l.cells.sort((a,b)=>a.x-b.x).map(c=>c.s).join(" ")).join("\n"); };
+  const all = pages.map(textOf).join("\n");
   const m = re => { const r=all.match(re); return r ? r.slice(1).map(x=>x && x.trim()) : null; };
   // número: "Pré-venda - 123", "Orçamento - 123" ou "Condicional - 123" (também aceita "Orçamento nº 123", "CONDICIONAL: 123")
   const numM = all.match(/(Pr[ée]\s*-?\s*venda|Or[çc]amento|Condicional)\s*(?:n[º°o.]*\s*)?[-–:#]?\s*(\d+)/i);
@@ -1303,38 +1305,54 @@ function parsePresale(raw){
   const seller = m(/Vendedor:\s*(.+?)(?:\s+Tabela:.*)?$/m)?.[0] || "";
   const obs = m(/Observa[çc][õo]es:\s*(.+)$/m)?.[0] || "";
   const total = brNum(m(/VALOR TOTAL:\s*R\$\s*([\d.,]+)/)?.[0] || 0);
+  if(!num || !pages.some(cells=>cells.some(c=>/^C[óo]d/.test(c.s)))) throw new Error("formato");
 
-  const hCod = cells.find(c=>/^C[óo]d/.test(c.s));
-  if(!num || !hCod) throw new Error("formato");
-  // Cabeçalho da tabela: pode vir em uma linha ("Valor Bruto") ou quebrado em várias ("Valor" / "Bruto").
-  // Junta as palavras que ficam na mesma coluna (mesmo centro) dentro da faixa do cabeçalho.
-  const band = cells.filter(c=>Math.abs(c.y-hCod.y)<=14 && !/\d{3}|,\d|%\d/.test(c.s) && c.s.length<=24);
-  const yH = Math.min(...band.map(c=>c.y));
-  const hcols = [];
-  [...band].sort((a,b)=>b.y-a.y||a.x-b.x).forEach(c=>{
-    const col = hcols.find(h=>Math.abs(h.cx-c.cx)<16 && !h.ys.includes(Math.round(c.y)));
-    if(col){ col.s += " "+c.s; col.ys.push(Math.round(c.y)); col.x=Math.min(col.x,c.x); col.w=Math.max(col.x+col.w,c.x+c.w)-col.x; }
-    else hcols.push({s:c.s, cx:c.cx, x:c.x, w:c.w, ys:[Math.round(c.y)]});
-  });
-  const H = re => hcols.find(h=>re.test(h.s));
-  const cols = [["code",H(/^C[óo]d/)||hCod],["desc",H(/^Descri/)],["un",H(/^UN$/)],["qty",H(/^Quant/)],["vb",H(/^Valor Bruto/)],["dp",H(/^Desconto/)],["vl",H(/^Valor L/)],["vt",H(/^Valor Total/)]].filter(c=>c[1]);
-  const ends = cells.filter(c=>/^(SUBTOTAL|QTD\. TOTAL|REFER)/.test(c.s)).map(c=>c.y);
-  const yE = ends.length ? Math.max(...ends) : -Infinity;
-  const region = cells.filter(c=>c.y<yH-2 && c.y>yE+2).map(c=>{
-    let best=null,d=1e9; for(const [k,h] of cols){ const dd=Math.abs(c.cx-(h.x+h.w/2)); if(dd<d){d=dd;best=k;} } return {...c,col:best};
-  });
-  const rows = region.filter(c=>c.col==="code" && /^\d{2,12}$/.test(c.s)).sort((a,b)=>b.y-a.y).map(c=>({y:c.y, code:c.s, cells:[]}));
-  if(!rows.length) throw new Error("sem itens");
-  region.filter(c=>!(c.col==="code" && rows.some(r=>r.code===c.s && r.y===c.y))).forEach(c=>{
-    let best=rows[0]; for(const r of rows) if(Math.abs(r.y-c.y)<Math.abs(best.y-c.y)) best=r; best.cells.push(c);
-  });
-  const items = rows.map(r=>{
-    const desc = r.cells.filter(c=>c.col==="desc").sort((a,b)=>b.y-a.y||a.x-b.x);
-    const ean = desc.find(c=>/^\d{8,14}$/.test(c.s))?.s || "";
-    const name = desc.filter(c=>c.s!==ean).map(c=>c.s).join(" ");
-    const g = k => r.cells.find(c=>c.col===k)?.s;
-    return {code:r.code, name, ean, un:g("un")||"UN", qty:Math.round(brNum(g("qty"))), price:brNum(g("vl")||g("vb")), lineTotal:brNum(g("vt"))};
-  });
+  let prevCols = null, ended = false;
+  const items = [];
+  for(const cells of pages){
+    if(ended) break;
+    const hCod = cells.find(c=>/^C[óo]d/.test(c.s) && cells.some(d=>Math.abs(d.y-c.y)<=14 && /^Descri/.test(d.s)));
+    let cols, yH;
+    if(hCod){
+      // Cabeçalho da tabela: pode vir em uma linha ("Valor Bruto") ou quebrado em várias ("Valor" / "Bruto").
+      // Junta as palavras que ficam na mesma coluna (mesmo centro) dentro da faixa do cabeçalho.
+      const band = cells.filter(c=>Math.abs(c.y-hCod.y)<=14 && !/\d{3}|,\d|%\d/.test(c.s) && c.s.length<=24);
+      yH = Math.min(...band.map(c=>c.y));
+      const hcols = [];
+      [...band].sort((a,b)=>b.y-a.y||a.x-b.x).forEach(c=>{
+        const col = hcols.find(h=>Math.abs(h.cx-c.cx)<16 && !h.ys.includes(Math.round(c.y)));
+        if(col){ col.s += " "+c.s; col.ys.push(Math.round(c.y)); col.x=Math.min(col.x,c.x); col.w=Math.max(col.x+col.w,c.x+c.w)-col.x; }
+        else hcols.push({s:c.s, cx:c.cx, x:c.x, w:c.w, ys:[Math.round(c.y)]});
+      });
+      const H = re => hcols.find(h=>re.test(h.s));
+      cols = [["code",H(/^C[óo]d/)||hCod],["desc",H(/^Descri/)],["un",H(/^UN$/)],["qty",H(/^Quant/)],["vb",H(/^Valor Bruto/)],["dp",H(/^Desconto/)],["vl",H(/^Valor L/)],["vt",H(/^Valor Total/)]].filter(c=>c[1]);
+      prevCols = cols;
+    } else if(prevCols){ cols = prevCols; yH = Infinity; } // continuação sem cabeçalho repetido
+    else continue;
+    const ends = cells.filter(c=>/^(SUBTOTAL|QTD\. TOTAL|REFER)/.test(c.s) && c.y<yH).map(c=>c.y);
+    const yE = ends.length ? Math.max(...ends) : -Infinity;
+    if(ends.length) ended = true;
+    const colOf = c => { let best=null,d=1e9; for(const [k,h] of cols){ const dd=Math.abs(c.cx-(h.x+h.w/2)); if(dd<d){d=dd;best=k;} } return best; };
+    let region = cells.filter(c=>c.y<yH-2 && c.y>yE+2).map(c=>({...c,col:colOf(c)}));
+    const rows = region.filter(c=>c.col==="code" && /^\d{2,12}$/.test(c.s)).sort((a,b)=>b.y-a.y).map(c=>({y:c.y, code:c.s, cells:[]}));
+    if(!rows.length) continue;
+    // sem o fim da tabela nesta página (vai continuar na próxima): ignora o rodapé/cabeçalho da página
+    const gap = rows.length>1 ? Math.max(...rows.slice(1).map((r,i)=>rows[i].y-r.y)) : 24;
+    const yTop = yH===Infinity ? rows[0].y + Math.min(gap,30) : Infinity;
+    const yBot = ends.length ? -Infinity : rows[rows.length-1].y - Math.min(gap,30);
+    region = region.filter(c=>c.y<=yTop && c.y>=yBot);
+    region.filter(c=>!(c.col==="code" && rows.some(r=>r.code===c.s && r.y===c.y))).forEach(c=>{
+      let best=rows[0]; for(const r of rows) if(Math.abs(r.y-c.y)<Math.abs(best.y-c.y)) best=r; best.cells.push(c);
+    });
+    rows.forEach(r=>{
+      const desc = r.cells.filter(c=>c.col==="desc").sort((a,b)=>b.y-a.y||a.x-b.x);
+      const ean = desc.find(c=>/^\d{8,14}$/.test(c.s))?.s || "";
+      const name = desc.filter(c=>c.s!==ean).map(c=>c.s).join(" ");
+      const g = k => r.cells.find(c=>c.col===k)?.s;
+      items.push({code:r.code, name, ean, un:g("un")||"UN", qty:Math.round(brNum(g("qty"))), price:brNum(g("vl")||g("vb")), lineTotal:brNum(g("vt"))});
+    });
+  }
+  if(!items.length) throw new Error("sem itens");
   return { num, docType, date:dt[0]||"", time:dt[1]||"", clientCode:cli[0]||"", client:cli[1]||"", city: cm ? `${cm[1].trim()} - ${cm[2]}` : "", seller, obs, total, items };
 }
 
@@ -1682,9 +1700,10 @@ function loadPdfJs(){
 }
 async function readPresalePdf(file){
   await loadPdfJs();
-  const pdf = await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
-  const pg = await pdf.getPage(1); const tc = await pg.getTextContent();
-  return parsePresale(tc.items.map(i=>({s:i.str, x:i.transform[4], y:i.transform[5], w:i.width})));
+  const pdf = await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise, pages=[];
+  // lê todas as páginas (pré-venda com muitos itens ocupa 2 ou mais)
+  for(let n=1;n<=pdf.numPages;n++){ const tc=await (await pdf.getPage(n)).getTextContent(); pages.push(tc.items.map(i=>({s:i.str, x:i.transform[4], y:i.transform[5], w:i.width}))); }
+  return parsePresale(pages);
 }
 async function importPdf(file){
   if(!/pdf$/i.test(file.type) && !/\.pdf$/i.test(file.name)){ state.draftErr="Escolha um arquivo PDF."; return render(); }
