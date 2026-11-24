@@ -4468,6 +4468,8 @@ const USERS_NAME = id => { const n = id && document.querySelector(`[data-uid="${
 /* ================== Painel TV da fila de separação ================== */
 const TV_CANAIS = [["consultiva","Venda Consultiva"],["ecommerce","E-commerce"]];
 let tvRefreshT=null;
+/* número do pedido na TV: os do e-commerce são longos (0012611045671); mostra só o final, que é o que muda, e sobra espaço para o cliente */
+const tvNum = o => { const n=String(o.num||""); return n.length>8 ? `<span title="#${esc(n)}">#…${esc(n.slice(-6))}</span>` : `#${esc(n)}`; };
 /* tag com a data de envio do Mercado Livre (mlPrazo, gravado na importação) */
 function tvPrazoTag(o){
   const f=mlFase(o); if(!f) return "";
@@ -4499,17 +4501,17 @@ function tvColumn(canal, title){
     ${empty && canal==="ecommerce" ? `<div class="tvsoon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.5L21 8H6"/><circle cx="10" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/></svg><b>Pedidos do e-commerce</b><span>Este lado mostra a fila do e-commerce quando o fluxo for integrado.</span></div>` : `
     <h3>Em separação · ${doing.length}</h3>
     <div class="tvlist">${doing.slice(0,MAXD).map(o=>{ const pl=pickList(o), r=res(o), d=pl.filter(x=>r[x.i].status!=="pend").length;
-      return `<div class="tvrow doing ${urgKind(o)?"tvurg":""} ${urgKind(o)==="retira"?"green":""}"><span class="tvnum">#${esc(o.num)}${urgKind(o)?` <em class="tvurgtag ${naLojaNow(o)?"":"green"}">${naLojaNow(o)?"CLIENTE NA LOJA":"RETIRA"}</em>`:""}</span><span class="tvcli">${esc(o.client)}<small><span data-uid="${esc(o.startedBy||"")}" data-fallback="Separador"></span>${o.tray?` · ${esc(spotsTxt(o))}`:""}</small></span>
+      return `<div class="tvrow doing ${urgKind(o)?"tvurg":""} ${urgKind(o)==="retira"?"green":""}"><span class="tvnum">${tvNum(o)}${urgKind(o)?` <em class="tvurgtag ${naLojaNow(o)?"":"green"}">${naLojaNow(o)?"CLIENTE NA LOJA":"RETIRA"}</em>`:""}</span><span class="tvcli">${esc(o.client)}<small><span data-uid="${esc(o.startedBy||"")}" data-fallback="Separador"></span>${o.tray?` · ${esc(spotsTxt(o))}`:""}</small></span>
         <span class="tvprog"><i style="width:${pl.length?d/pl.length*100:0}%"></i><small class="tnum">${d}/${pl.length} ref.</small></span>
         <span class="tvtime tnum">${o.startedAt?`<span data-since="${o.startedAt}">${fmtDur(now-o.startedAt)}</span>`:"—"}</span></div>`; }).join("") || `<div class="tvnone">Ninguém separando agora</div>`}
       ${doing.length>MAXD?`<div class="tvmore">+ ${doing.length-MAXD} em separação</div>`:""}</div>
     <h3>Aguardando separação · ${queue.length}${canal==="ecommerce" && queue.length ? (()=>{ const m={}; queue.forEach(o=>{ const v=o.origem||"Site"; m[v]=(m[v]||0)+1; });
       return ` <span class="tvcanais">(${Object.entries(m).sort((a,b)=>b[1]-a[1]).map(([v,n])=>`${esc(v)} ${n}`).join(" - ")})</span>`; })() : ""}</h3>
-    <div class="tvlist fit" data-total="${queue.length}">${queue.slice(0,MAXQ).map((o,k)=>`<div class="tvrow ${urgKind(o)?"tvurg"+(naLojaNow(o)?"":" green"):lvl(wait(o))}"><span class="tvpos tnum">${k+1}</span><span class="tvnum">#${esc(o.num)}${urgKind(o)?` <em class="tvurgtag ${naLojaNow(o)?"":"green"}">${urgText(o)}</em>`:""}${tvPrazoTag(o)}${now-(o.createdAt||0)<5*60e3?` <em class="tvnew">NOVO</em>`:""}</span>
+    <div class="tvlist fit" data-total="${queue.length}">${queue.slice(0,MAXQ).map((o,k)=>`<div class="tvrow ${urgKind(o)?"tvurg"+(naLojaNow(o)?"":" green"):lvl(wait(o))}"><span class="tvpos tnum">${k+1}</span><span class="tvnum">${tvNum(o)}${urgKind(o)?` <em class="tvurgtag ${naLojaNow(o)?"":"green"}">${urgText(o)}</em>`:""}${tvPrazoTag(o)}${now-(o.createdAt||0)<5*60e3?` <em class="tvnew">NOVO</em>`:""}</span>
         <span class="tvcli">${esc(o.client)}<small>${o.fase2?`<b>${o.encParcial?"Parte da encomenda chegou · guardar na colmeia":"Encomenda chegou"}${(()=>{ const m=[...new Set((o.items||[]).map(i=>i.recMesa).filter(Boolean))]; return m.length?" · buscar na "+m.map(mesaName).join(", "):""; })()}</b> · `:""}${pickList(o).length} ref. · ${units(o)} pç · ${isEco(o) ? esc((o.origem||"Site")+(o.transportadora?" · "+o.transportadora:"")) : esc(MODES[o.mode]?.t||"")+(transpOf(o)?" · "+esc(transpOf(o)):"")}</small></span>
         <span class="tvtime tnum"><span data-since="${o.createdAt}">${fmtDur(wait(o))}</span></span></div>`).join("") || `<div class="tvnone ok">Fila vazia</div>`}
 </div><div class="tvmore" data-more>${queue.length>MAXQ?`+ ${queue.length-MAXQ} pedidos na fila`:""}</div>
-    ${done.length?`<div class="tvdone"><h3>Últimos separados</h3><div class="tvlist small">${done.slice(0,MAXF).map(o=>`<div class="tvrow fin"><span class="tvnum">#${esc(o.num)}</span><span class="tvcli">${esc(o.client)}</span><span class="tvtime tnum">${fmtClock(o.pickedAt)}${o.startedAt?` · ${fmtDur(o.pickedAt-o.startedAt).replace(/ \d+s$/,"")}`:""}</span></div>`).join("")}</div></div>`:""}`}
+    ${done.length?`<div class="tvdone"><h3>Últimos separados</h3><div class="tvlist small">${done.slice(0,MAXF).map(o=>`<div class="tvrow fin"><span class="tvnum">${tvNum(o)}</span><span class="tvcli">${esc(o.client)}</span><span class="tvtime tnum">${fmtClock(o.pickedAt)}${o.startedAt?` · ${fmtDur(o.pickedAt-o.startedAt).replace(/ \d+s$/,"")}`:""}</span></div>`).join("")}</div></div>`:""}`}
   </section>`;
 }
 /* Nome curto do cliente para o painel: tira CPF/CNPJ, tipo de empresa (LTDA, ME…) e o ramo (Marcenaria, Móveis Planejados…), fica o nome de fato.
