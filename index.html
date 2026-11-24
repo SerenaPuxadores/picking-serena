@@ -308,6 +308,7 @@ button:focus-visible{outline:3px solid var(--route);outline-offset:2px}
 .ecofil .eyebrow{flex:none;margin-right:2px}
 .fchip{flex:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
 .fchip b{opacity:.6;margin-left:2px}.fchip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.mlp{font-weight:700;color:var(--muted)}.mlp.hoje{color:var(--accent-ink)}.mlp.atrasado{color:var(--bad)}
 .chip.eco{background:var(--route-soft,rgba(111,155,255,.16));color:var(--route,#2A5BC8)}
 .transp{font-weight:600;color:var(--ink)}
 .mzcancel{background:var(--bad);color:#fff;font-weight:700;border-radius:8px;padding:6px 10px;font-size:13px;letter-spacing:.02em}
@@ -3973,7 +3974,7 @@ function renderOrders(){
           <div class="row"><span class="num">#${esc(o.num)}${newIds.has(o.id)&&o.status==="aguardando"?` <span class="chip newc">Novo</span>`:""}${isManual(o)?" "+manualTag(o):""}${reenvioTag(o)}</span>${o.status==="separando"?`<span class="chip prog">Em separação</span>`:o.fase2?`${(()=>{ const m=[...new Set((o.items||[]).map(i=>i.recMesa).filter(Boolean))]; return m.length?`<span class="chip enc">${m.map(mesaName).join(", ")}</span>`:""; })()}<span class="chip done">${o.encParcial?"Parte da encomenda · guardar na colmeia":"Encomenda recebida"}</span>`:isEco(o)?`<span class="chip eco">${esc(o.origem||"Site")}</span>`:`<span class="chip ${MODES[o.mode].c}">${MODES[o.mode].t}</span>`}</div>
           ${o.mzCancelado?`<div class="mzcancel">CANCELADO na Magazord · não enviar</div>`:o.mzMudou?`<div class="mzcancel warn">Situação mudou na Magazord: ${esc(o.mzSituacaoDesc||o.mzSituacao)} · confirme antes de enviar</div>`:""}
           <div class="client">${esc(o.client)}</div>
-          <div class="meta tnum"><span>${pl.length} ref. · ${pl.reduce((a,x)=>a+x.need,0)} pç</span>${aisles?`<span>Ruas ${aisles}</span>`:""}${semLoc?`<span style="color:var(--bad)">${semLoc} sem local</span>`:""}${o.status==="separando"&&o.startedAt?`<span>Separando há ${since(o.startedAt)}</span>`:`<span>Na fila há ${since(o.createdAt)}</span>`}${o.tray&&o.status==="separando"?`<span>Bandeja ${esc(o.tray)}</span>`:""}${isEco(o)?transpBadge(o.transportadora):`${transpOf(o)?transpBadge(transpOf(o)):""}`+(o.mode==="aguarda"?`<span>Colmeia ${esc(o.colmeia)}</span>`:`<span>Destino: mesa de expedição</span>`)}${enc?`<span>${enc} ref. sob encomenda</span>`:""}${sepOf(o)?`<span class="sepby">Separador: <b>${esc(USERS[sepOf(o)]?.name||USERS[sepOf(o)]?.login||"—")}</b></span>`:""}</div>
+          <div class="meta tnum">${prazoChip(o)}<span>${pl.length} ref. · ${pl.reduce((a,x)=>a+x.need,0)} pç</span>${aisles?`<span>Ruas ${aisles}</span>`:""}${semLoc?`<span style="color:var(--bad)">${semLoc} sem local</span>`:""}${o.status==="separando"&&o.startedAt?`<span>Separando há ${since(o.startedAt)}</span>`:`<span>Na fila há ${since(o.createdAt)}</span>`}${o.tray&&o.status==="separando"?`<span>Bandeja ${esc(o.tray)}</span>`:""}${isEco(o)?transpBadge(o.transportadora):`${transpOf(o)?transpBadge(transpOf(o)):""}`+(o.mode==="aguarda"?`<span>Colmeia ${esc(o.colmeia)}</span>`:`<span>Destino: mesa de expedição</span>`)}${enc?`<span>${enc} ref. sob encomenda</span>`:""}${sepOf(o)?`<span class="sepby">Separador: <b>${esc(USERS[sepOf(o)]?.name||USERS[sepOf(o)]?.login||"—")}</b></span>`:""}</div>
           ${done?`<div class="prog-bar"><i style="width:${done/pl.length*100}%"></i></div>`:""}
         </button>${acts?`<div class="ord-acts">${hasRole("admin")?`<button class="icbtn" data-qedit="${esc(o.id)}" aria-label="Trocar separador ou canal" title="Trocar separador ou canal">${ICON_EDIT}</button>`:""}${can("coleta")&&o.status==="separando"?`<button class="icbtn" data-restart="${esc(o.id)}" aria-label="Reiniciar separação" title="Reiniciar separação">${ICON_RESTART}</button>`:""}${can("coleta")?`<button class="icbtn del" data-delord="${esc(o.id)}" aria-label="Excluir separação" title="Excluir separação">${ICON_TRASH}</button>`:""}</div>`:""}</div>`;}).join("") + `</div>` + pgQ.pager : `<div class="empty">Nenhum pedido aguardando separação.</div>`}
     </div>
@@ -4692,7 +4693,7 @@ const loteMatch = (o, L=state.lote) => !!L && isEco(o) && L.vals.includes(loteVa
 function lotePending(L=state.lote){ // pedidos do lote ainda por separar (os meus em andamento primeiro)
   return ORDERS.filter(o=>loteMatch(o,L) && !isManual(o) && !(L?.skipped||[]).includes(o.id) && pickList(o).length && !o.mzCancelado && !o.mzMudou && !notMine(o) &&
       (o.status==="aguardando" || (o.status==="separando" && (!o.startedBy || o.startedBy===ME.id))))
-    .sort((a,b)=>((b.status==="separando")-(a.status==="separando")) || (a.createdAt||0)-(b.createdAt||0));
+    .sort((a,b)=>((b.status==="separando")-(a.status==="separando")) || byUrg(a,b));
 }
 function loteNext(){
   const nx=lotePending()[0];
@@ -6711,7 +6712,17 @@ const urgKind = o => naLojaNow(o) ? "loja" : (o.retira || o.naLoja) ? "retira" :
 const urgRank = o => naLojaNow(o) ? 2 : (o.retira || o.naLoja) ? 1 : 0;
 const urgText = o => naLojaNow(o) ? "URGENTE · CLIENTE NA LOJA" : "URGENTE · RETIRA NA LOJA";
 const urgBar = (o, st="") => urgKind(o) ? `<div class="retirabar ${naLojaNow(o)?"":"rb-green"}"${st?` style="${st}"`:""}>${urgText(o)}</div>` : "";
-const byUrg = (a,b) => (urgRank(b) - urgRank(a)) || (a.createdAt||0)-(b.createdAt||0);
+/* Prazo de despacho do Mercado Livre: a função ml-prazos (Supabase, a cada 3 min) grava o.mlPrazo = {limite, sla, tipo, envio, st, sub}.
+   Na fila: atrasados > despachar hoje > pedidos sem prazo (site, consultiva) > ML com prazo para amanhã ou depois. */
+const diaKey = t => { const d=new Date(t); return d.getFullYear()*1e4+(d.getMonth()+1)*100+d.getDate(); };
+const mlLim = o => { const t=o.mlPrazo&&o.mlPrazo.limite ? Date.parse(o.mlPrazo.limite) : NaN; return isNaN(t) ? null : t; };
+const mlFase = o => { const t=mlLim(o); if(t==null) return null; const now=Date.now();
+  if(o.mlPrazo.sla==="delayed" || t<now) return "atrasado"; const k=diaKey(t); return k===diaKey(now) ? "hoje" : k===diaKey(now+864e5) ? "amanha" : "depois"; };
+const prazoRank = o => ({atrasado:3, hoje:2, amanha:0, depois:0})[mlFase(o)] ?? 1;
+const prazoChip = o => { const f=mlFase(o); if(!f) return ""; const d=new Date(mlLim(o)), hm=d.getHours()===23&&d.getMinutes()===59 ? "" : ` até ${String(d.getHours()).padStart(2,"0")}h${d.getMinutes()?String(d.getMinutes()).padStart(2,"0"):""}`;
+  const t = f==="atrasado" ? "ML · Atrasado, despachar já" : f==="hoje" ? `ML · Despachar hoje${hm}` : f==="amanha" ? "ML · Despachar amanhã" : `ML · Despachar ${d.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"})}`;
+  return `<span class="mlp ${f}" title="Prazo do Mercado Livre para despachar">${t}</span>`; };
+const byUrg = (a,b) => (urgRank(b) - urgRank(a)) || (prazoRank(b) - prazoRank(a)) || ((mlLim(a)??0) - (mlLim(b)??0)) || (a.createdAt||0)-(b.createdAt||0);
 const ecoOk = o => isEco(o) ? canEco() : canCons();
 /* Pedido passado pelo Administrador para um separador: só essa pessoa (e admin/supervisor) pega */
 const sepOf = o => o.status==="separando" && o.startedBy ? o.startedBy : (o.assignTo||"");
