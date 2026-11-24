@@ -4519,17 +4519,20 @@ function tvMlTick(){
   TV_PRIO_UNTIL=Date.now()+9000; render(); mlAvisoPlay(e, g.t);
 }
 /* toca o aviso do ML: campainha + narração da etapa (e = linha de ML_AV_ETAPAS, t = horário de corte) */
+let ML_TOCANDO=0;
 async function mlAvisoPlay(e, gt){
   const g={t:gt};
+  if(Date.now()<ML_TOCANDO) return; // já tem um aviso do ML tocando: não sobrepõe
+  ML_TOCANDO=Date.now()+12000;
   try{ if(audioCtx && audioCtx.state!=="running") await Promise.race([audioCtx.resume(), new Promise(ok=>setTimeout(ok,800))]); }catch(x){}
-  const buf = await Promise.race([mlAudLoad(), new Promise(r=>setTimeout(()=>r(ML_AUD.buf),4000))]);
+  const buf = await Promise.race([mlAudLoad(), new Promise(r=>setTimeout(()=>r(ML_AUD.buf),10000))]);
   const run = audioCtx && audioCtx.state==="running", sino=run && buf.sino, voz=run && buf[e[1]];
   let t = run ? Math.max(audioCtx.currentTime+.05, TVV.until) : 0;
   const toca = b => { const x=audioCtx.createBufferSource(); x.buffer=b; x.connect(audioCtx.destination); x.start(t); t+=b.duration; };
   if(sino){ toca(sino); t+=.35; } else { chime(true, true); t+=1.7; } // campainha não carregou: usa o sinal padrão
   if(voz) toca(voz);
   else setTimeout(()=>tvSay(e[2]), sino ? Math.max(0,(t-audioCtx.currentTime)*1000) : 1700);
-  if(run) TVV.until=t+.6;
+  if(run){ TVV.until=t+.6; ML_TOCANDO=Date.now()+Math.max(0,(t-audioCtx.currentTime)*1000)+600; } else ML_TOCANDO=Date.now()+8000;
   TVV.last={num:`Envio ML ${hhmm(g.t)} (faltam ${e[0]===120?"2 h":e[0]===90?"1 h 30":e[0]+" min"})`, at:Date.now(), via:voz?"voz gravada":"voz do navegador"};
   const el=document.getElementById("tvLast"); if(el) el.textContent=tvLastTxt();
 }
@@ -4722,7 +4725,7 @@ const TV_TESTES=[
   ["ml90","Envio Mercado Livre · 1 h 30","Campainha + “Falta uma hora e meia…”"],
   ["ml30","Envio Mercado Livre · 30 min","Campainha + “Faltam trinta minutos…”"]];
 function tvTeste(k){
-  unlockAudio(); tvStaleStop(); TV_PRIO_UNTIL=0; try{ TVV.until=audioCtx?audioCtx.currentTime:0; }catch(e){}
+  unlockAudio(); tvStaleStop(); TV_PRIO_UNTIL=0; try{ if(Date.now()>=ML_TOCANDO) TVV.until=audioCtx?audioCtx.currentTime:0; }catch(e){}
   if(k==="novo") return chime(true);
   if(k==="loja"){ chime(true); return setTimeout(()=>tvAnnounce("37526"), 1700); }
   if(k==="colmeia"){ chime(true, true); return setTimeout(()=>{ TV_PRIO_UNTIL=0; tvStaleSay({num:"37526", colmeia:"CM-B7"}, 8); }, 1700); }
@@ -4744,7 +4747,7 @@ function renderTV(){
     ${(()=>{ const st=staleOrders(); return st.length ? `<div class="tvstale"><b>⚠ Conferir colmeia</b>${st.slice(0,8).map(o=>`<span><b class="mono">${esc(o.colmeia.slice(3))}</b> #${esc(o.num)} · ${staleAge(o)} dias</span>`).join("")}${st.length>8?`<span>+${st.length-8}</span>`:""}<small>Bipe a colmeia em qualquer tela e confirme</small></div>` : ""; })()}
     <div class="tvgrid">${TV_CANAIS.map(([c,t])=>tvColumn(c,t)).join("")}</div>
     ${audioCtx && audioCtx.state==="running" ? "" : `<div class="tvunlock" id="tvUnlock"><b>🔇 Toque na tela (ou aperte OK no controle) para ligar o som</b><small>Sem isso a TV não toca o aviso de novo pedido nem a voz de “Cliente aguarda na loja”. O navegador exige um toque cada vez que a página abre.</small></div>`}`;
-  tvVoiceLoad();
+  tvVoiceLoad(); if(audioCtx) mlAudLoad();
   fillNames(app); tvFit();
   const snd=document.getElementById("tvSound"), unl=document.getElementById("tvUnlock");
   [snd,unl].forEach(b=>{ if(b) b.onclick=()=>{ unlockAudio(); setTimeout(render, 300); }; }); // a confirmação "Aviso de voz ligado" toca no unlockAudio
