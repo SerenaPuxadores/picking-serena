@@ -4469,8 +4469,9 @@ const USERS_NAME = id => { const n = id && document.querySelector(`[data-uid="${
 /* ================== Painel TV da fila de separação ================== */
 const TV_CANAIS = [["consultiva","Venda Consultiva"],["ecommerce","E-commerce"]];
 let tvRefreshT=null;
-/* Envio do Mercado Livre: da 2 h antes da hora de corte até a hora, a TV mostra uma faixa e, ao entrar na janela, fala
-   "Atenção! Faltam duas horas para o envio do Mercado Livre" (uma vez por horário de corte em cada TV).
+/* Envio do Mercado Livre: da 2 h antes da hora de corte até a hora, a TV mostra uma faixa e avisa por voz com 2 h, 1 h 30 e 30 min
+   de antecedência: campainha (audio/campainha-ml.mp3) + "Atenção! Faltam duas horas / Falta uma hora e meia / Faltam trinta minutos
+   para o envio do Mercado Livre" (cada aviso uma vez por horário de corte em cada TV, só nos 10 min seguintes ao momento dele).
    Vale para pedidos do ML ainda não enviados com prazo de hoje e hora definida (sem etiqueta liberada o ML não dá a hora). */
 const ML_AV_JAN=2*36e5;
 function mlEnvioProx(now=Date.now()){
@@ -4486,21 +4487,46 @@ function tvMlAlertHtml(){
   const r=Math.max(0,g.t-Date.now()), h=Math.floor(r/36e5), mi=Math.floor(r%36e5/6e4), falta=h?`${h}h${String(mi).padStart(2,"0")}`:`${mi} min`;
   return `<div class="tvmlalert ${r<30*6e4?"bad":""}"><b>Envio do Mercado Livre às ${hhmm(g.t)}</b><span>faltam ${falta} · ${g.n} ${g.n===1?"pedido":"pedidos"}${g.fila?` · ${g.fila} ainda na separação`:" · todos separados"}</span></div>`;
 }
-let ML_AV_SAID={}; try{ ML_AV_SAID=JSON.parse(localStorage.getItem("ps_mlav")||"{}"); }catch(e){}
+const ML_AV_ETAPAS=[ // [minutos antes, trecho gravado em tts/tv/, texto para a voz do navegador]
+  [120,"ml2h","Atenção! Faltam duas horas para o envio do Mercado Livre."],
+  [90,"ml90","Atenção! Falta uma hora e meia para o envio do Mercado Livre."],
+  [30,"ml30","Atenção! Faltam trinta minutos para o envio do Mercado Livre."]];
+/* áudios do aviso do ML, carregados à parte (um que falte não derruba os outros): campainha + trechos gravados */
+const ML_AUD={buf:{},p:null};
+function mlAudLoad(){
+  if(ML_AUD.p) return ML_AUD.p;
+  try{ audioCtx ||= new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return Promise.resolve(ML_AUD.buf); }
+  const get=(k,url)=>fetch(url).then(r=>{ if(!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+    .then(a=>new Promise((ok,ko)=>audioCtx.decodeAudioData(a,ok,ko))).then(b=>{ ML_AUD.buf[k]= k==="sino" ? b : tvTrim(b); });
+  ML_AUD.p=Promise.allSettled([get("sino","/audio/campainha-ml.mp3"), ...ML_AV_ETAPAS.map(([,n])=>get(n, TV_TTS+n+".mp3"))])
+    .then(()=>{ if(ML_AV_ETAPAS.some(([,n])=>!ML_AUD.buf[n]) || !ML_AUD.buf.sino) setTimeout(()=>{ ML_AUD.p=null; }, 10*6e4); return ML_AUD.buf; });
+  return ML_AUD.p;
+}
+let ML_AV_SAID={}; try{ ML_AV_SAID=JSON.parse(localStorage.getItem("ps_mlav2")||"{}"); }catch(e){}
 function tvMlTick(){
   if(IS_SHOWROOM || !(state.view==="tv" || myRole()==="painel")) return;
-  const now=Date.now(), g=mlEnvioProx(now).find(x=>!ML_AV_SAID[x.t] && now-(x.t-ML_AV_JAN)<10*6e4); // só nos primeiros 10 min da janela
-  if(!g || !tvVoiceFree()) return;
-  ML_AV_SAID[g.t]=now; Object.keys(ML_AV_SAID).forEach(k=>{ if(now-(+k)>864e5) delete ML_AV_SAID[k]; });
-  try{ localStorage.setItem("ps_mlav", JSON.stringify(ML_AV_SAID)); }catch(e){}
-  chime(true, true); render();
-  setTimeout(async ()=>{
-    try{ if(audioCtx && audioCtx.state!=="running") await Promise.race([audioCtx.resume(), new Promise(ok=>setTimeout(ok,800))]); }catch(e){}
-    const ok = await Promise.race([tvVoiceLoad(), new Promise(r=>setTimeout(()=>r(false),4000))]);
-    if(ok && audioCtx && audioCtx.state==="running" && TVV.buf.ml2h) tvPlay([["ml2h",0]]);
-    else tvSay("Atenção! Faltam duas horas para o envio do Mercado Livre.");
-    TVV.last={num:"Envio ML "+hhmm(g.t), at:Date.now(), via:"aviso de 2 h"}; const el=document.getElementById("tvLast"); if(el) el.textContent=tvLastTxt();
-  }, 1700);
+  const now=Date.now(); let alvo=null;
+  for(const g of mlEnvioProx(now)){ const falta=(g.t-now)/6e4;
+    const e=ML_AV_ETAPAS.find(([m])=>falta<=m && falta>m-10); // só nos primeiros 10 min de cada aviso
+    if(e && !ML_AV_SAID[g.t+":"+e[0]]){ alvo={g,e}; break; } }
+  if(!alvo || !tvVoiceFree()) return;
+  const {g,e}=alvo; ML_AV_SAID[g.t+":"+e[0]]=now;
+  Object.keys(ML_AV_SAID).forEach(k=>{ if(now-(+k.split(":")[0])>864e5) delete ML_AV_SAID[k]; });
+  try{ localStorage.setItem("ps_mlav2", JSON.stringify(ML_AV_SAID)); }catch(x){}
+  TV_PRIO_UNTIL=Date.now()+9000; render();
+  (async ()=>{
+    try{ if(audioCtx && audioCtx.state!=="running") await Promise.race([audioCtx.resume(), new Promise(ok=>setTimeout(ok,800))]); }catch(x){}
+    const buf = await Promise.race([mlAudLoad(), new Promise(r=>setTimeout(()=>r(ML_AUD.buf),4000))]);
+    const run = audioCtx && audioCtx.state==="running", sino=run && buf.sino, voz=run && buf[e[1]];
+    let t = run ? Math.max(audioCtx.currentTime+.05, TVV.until) : 0;
+    const toca = b => { const x=audioCtx.createBufferSource(); x.buffer=b; x.connect(audioCtx.destination); x.start(t); t+=b.duration; };
+    if(sino){ toca(sino); t+=.35; } else { chime(true, true); t+=1.7; } // campainha não carregou: usa o sinal padrão
+    if(voz) toca(voz);
+    else setTimeout(()=>tvSay(e[2]), sino ? Math.max(0,(t-audioCtx.currentTime)*1000) : 1700);
+    if(run) TVV.until=t+.6;
+    TVV.last={num:`Envio ML ${hhmm(g.t)} (faltam ${e[0]===120?"2 h":e[0]===90?"1 h 30":e[0]+" min"})`, at:Date.now(), via:voz?"voz gravada":"voz do navegador"};
+    const el=document.getElementById("tvLast"); if(el) el.textContent=tvLastTxt();
+  })();
 }
 setInterval(tvMlTick, 15000);
 /* número do pedido na TV: os do e-commerce são longos (0012611045671); mostra só o final, que é o que muda, e sobra espaço para o cliente */
@@ -7132,7 +7158,7 @@ function tvVoiceLoad(){
   if(TVV.p) return TVV.p;
   try{ audioCtx ||= new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return Promise.resolve(false); }
   const names=["atencao","aguarda","ligado","pv","cem","cfpc","maisde","diasar","diaar", ..."ABCDEFGHIJK".split("").map(c=>"l"+c), ...Array.from({length:10},(_,i)=>"d"+i), ...Array.from({length:10},(_,i)=>"t"+(10+i)),
-    ...[2,3,4,5,6,7,8,9].flatMap(i=>["x"+i,"x"+i+"e"]), "h1e", ...[2,3,4,5,6,7,8,9].flatMap(i=>["h"+i,"h"+i+"e"]), "ml2h"];
+    ...[2,3,4,5,6,7,8,9].flatMap(i=>["x"+i,"x"+i+"e"]), "h1e", ...[2,3,4,5,6,7,8,9].flatMap(i=>["h"+i,"h"+i+"e"])];
   TVV.p = Promise.all(names.map(n=>fetch(TV_TTS+n+(TV_TTS_V[n]?"_v"+TV_TTS_V[n]:"")+".mp3").then(r=>{ if(!r.ok) throw new Error(n); return r.arrayBuffer(); })
       .then(a=>new Promise((ok,ko)=>audioCtx.decodeAudioData(a,ok,ko))).then(b=>[n,tvTrim(b)])));
   TVV.p = Promise.race([TVV.p, new Promise((_,ko)=>setTimeout(()=>ko(new Error("tempo esgotado")),15000))]) // não fica preso se a rede travar; tenta de novo no próximo aviso
