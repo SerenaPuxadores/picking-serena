@@ -384,6 +384,9 @@ html.tvmode body{background:var(--bg);color:var(--ink);overflow:hidden}
 .tvprog small{position:relative;display:block;text-align:center;line-height:1.6em;font-size:.8em;font-weight:700}
 .tvnew{font-style:normal;font-family:var(--display);font-size:.75em;background:var(--accent);color:#111;border-radius:.3em;padding:.05em .35em;margin-left:.3em;animation:tvblink 1.2s ease-in-out infinite}
 @keyframes tvblink{50%{opacity:.35}}
+.tvmenuwrap{position:relative}.tvcaret{font-size:.8em;margin-left:.2em}
+.tvmenu{position:absolute;right:0;top:calc(100% + .4em);z-index:60;min-width:20em;background:var(--surface);border:1px solid var(--line);border-radius:.7em;padding:.35em;box-shadow:0 12px 32px rgba(0,0,0,.45);display:flex;flex-direction:column}
+.tvmenu button{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:.1em;padding:.55em .8em;border-radius:.5em;color:var(--ink)}.tvmenu button:hover,.tvmenu button:focus-visible{background:var(--bg)}.tvmenu b{font-weight:600}.tvmenu small{color:var(--muted);font-size:.8em}
 .tvsound{font-size:.9em;color:var(--ok);font-weight:600}.app.tv .tvtools .refbtn.tvsound{color:var(--ok);border-color:currentColor}
 .tvunlock{position:fixed;left:50%;bottom:3vh;transform:translateX(-50%);z-index:50;background:#B42318;color:#fff;border-radius:18px;padding:1.1em 2em;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.45);cursor:pointer;animation:tvunl 1.6s ease-in-out infinite;max-width:80vw}
 .tvlast{display:block;font-size:.72em;opacity:.75;max-width:22em;line-height:1.2;text-align:right}.tvunlock b{display:block;font-size:1.5em}.tvunlock small{display:block;font-size:.95em;opacity:.9;margin-top:.35em}
@@ -4513,20 +4516,22 @@ function tvMlTick(){
   const {g,e}=alvo; ML_AV_SAID[g.t+":"+e[0]]=now;
   Object.keys(ML_AV_SAID).forEach(k=>{ if(now-(+k.split(":")[0])>864e5) delete ML_AV_SAID[k]; });
   try{ localStorage.setItem("ps_mlav2", JSON.stringify(ML_AV_SAID)); }catch(x){}
-  TV_PRIO_UNTIL=Date.now()+9000; render();
-  (async ()=>{
-    try{ if(audioCtx && audioCtx.state!=="running") await Promise.race([audioCtx.resume(), new Promise(ok=>setTimeout(ok,800))]); }catch(x){}
-    const buf = await Promise.race([mlAudLoad(), new Promise(r=>setTimeout(()=>r(ML_AUD.buf),4000))]);
-    const run = audioCtx && audioCtx.state==="running", sino=run && buf.sino, voz=run && buf[e[1]];
-    let t = run ? Math.max(audioCtx.currentTime+.05, TVV.until) : 0;
-    const toca = b => { const x=audioCtx.createBufferSource(); x.buffer=b; x.connect(audioCtx.destination); x.start(t); t+=b.duration; };
-    if(sino){ toca(sino); t+=.35; } else { chime(true, true); t+=1.7; } // campainha não carregou: usa o sinal padrão
-    if(voz) toca(voz);
-    else setTimeout(()=>tvSay(e[2]), sino ? Math.max(0,(t-audioCtx.currentTime)*1000) : 1700);
-    if(run) TVV.until=t+.6;
-    TVV.last={num:`Envio ML ${hhmm(g.t)} (faltam ${e[0]===120?"2 h":e[0]===90?"1 h 30":e[0]+" min"})`, at:Date.now(), via:voz?"voz gravada":"voz do navegador"};
-    const el=document.getElementById("tvLast"); if(el) el.textContent=tvLastTxt();
-  })();
+  TV_PRIO_UNTIL=Date.now()+9000; render(); mlAvisoPlay(e, g.t);
+}
+/* toca o aviso do ML: campainha + narração da etapa (e = linha de ML_AV_ETAPAS, t = horário de corte) */
+async function mlAvisoPlay(e, gt){
+  const g={t:gt};
+  try{ if(audioCtx && audioCtx.state!=="running") await Promise.race([audioCtx.resume(), new Promise(ok=>setTimeout(ok,800))]); }catch(x){}
+  const buf = await Promise.race([mlAudLoad(), new Promise(r=>setTimeout(()=>r(ML_AUD.buf),4000))]);
+  const run = audioCtx && audioCtx.state==="running", sino=run && buf.sino, voz=run && buf[e[1]];
+  let t = run ? Math.max(audioCtx.currentTime+.05, TVV.until) : 0;
+  const toca = b => { const x=audioCtx.createBufferSource(); x.buffer=b; x.connect(audioCtx.destination); x.start(t); t+=b.duration; };
+  if(sino){ toca(sino); t+=.35; } else { chime(true, true); t+=1.7; } // campainha não carregou: usa o sinal padrão
+  if(voz) toca(voz);
+  else setTimeout(()=>tvSay(e[2]), sino ? Math.max(0,(t-audioCtx.currentTime)*1000) : 1700);
+  if(run) TVV.until=t+.6;
+  TVV.last={num:`Envio ML ${hhmm(g.t)} (faltam ${e[0]===120?"2 h":e[0]===90?"1 h 30":e[0]+" min"})`, at:Date.now(), via:voz?"voz gravada":"voz do navegador"};
+  const el=document.getElementById("tvLast"); if(el) el.textContent=tvLastTxt();
 }
 setInterval(tvMlTick, 15000);
 /* número do pedido na TV: os do e-commerce são longos (0012611045671); mostra só o final, que é o que muda, e sobra espaço para o cliente */
@@ -4705,6 +4710,24 @@ function srLive(){ try{ if(state.view!=="pick" || IS_SHOWROOM) return; const c=c
   const k=c.o.id+":"+c.it.i+":"+state.count; if(k===SR_LIVE.k) return; SR_LIVE.k=k;
   const send=()=>{ SR_LIVE.t=Date.now(); SR_LIVE.tm=null; const c2=cur(); if(!c2 || !c2.it) return; if(!(state.count>0) && !c2.o.live) return; patchOrder(c2.o.id, {live:{i:c2.it.i, n:state.count, at:Date.now()}}); };
   clearTimeout(SR_LIVE.tm); const w=1500-(Date.now()-SR_LIVE.t); if(w<=0) send(); else SR_LIVE.tm=setTimeout(send, w); }catch(e){} }
+/* Menu de teste dos avisos da TV (botão "Som e voz ligados") */
+let TV_MENU=false;
+document.addEventListener("click", ()=>{ if(TV_MENU){ TV_MENU=false; render(); } });
+document.addEventListener("keydown", ev=>{ if(TV_MENU && ev.key==="Escape"){ TV_MENU=false; render(); } });
+const TV_TESTES=[
+  ["novo","Novo pedido","Sinal sonoro de pedido novo na fila"],
+  ["loja","Cliente aguarda na loja","Sinal + voz com o número da pré-venda"],
+  ["colmeia","Pedido parado na colmeia","Sinal + voz da colmeia e dos dias parado"],
+  ["ml120","Envio Mercado Livre · 2 h","Campainha + “Faltam duas horas…”"],
+  ["ml90","Envio Mercado Livre · 1 h 30","Campainha + “Falta uma hora e meia…”"],
+  ["ml30","Envio Mercado Livre · 30 min","Campainha + “Faltam trinta minutos…”"]];
+function tvTeste(k){
+  unlockAudio(); tvStaleStop(); TV_PRIO_UNTIL=0; try{ TVV.until=audioCtx?audioCtx.currentTime:0; }catch(e){}
+  if(k==="novo") return chime(true);
+  if(k==="loja"){ chime(true); return setTimeout(()=>tvAnnounce("37526"), 1700); }
+  if(k==="colmeia"){ chime(true, true); return setTimeout(()=>{ TV_PRIO_UNTIL=0; tvStaleSay({num:"37526", colmeia:"CM-B7"}, 8); }, 1700); }
+  const e=ML_AV_ETAPAS.find(([m])=>"ml"+m===k); if(e) mlAvisoPlay(e, Date.now()+e[0]*6e4);
+}
 function renderTV(){
   app.classList.add("tv"); document.documentElement.classList.add("tvmode");
   const d=new Date(), painel=myRole()==="painel";
@@ -4712,7 +4735,7 @@ function renderTV(){
       <div class="brand">Picking <span>Serena</span><small>Painel da separação</small></div>
       <div class="tvclock"><b class="tnum" id="tvClock">${d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</b><small>${d.toLocaleDateString("pt-BR",{weekday:"long", day:"2-digit", month:"long"})}</small></div>
       <div class="tvtools"><div class="sync ${synced?"":"local"}"><i></i>${synced?"Ao vivo":"Sem conexão"}</div>
-        ${audioCtx && audioCtx.state==="running" ? `<button class="refbtn tvsound" id="tvTest" title="Toca um aviso de teste com a voz do Cliente na loja">🔊 Som e voz ligados · testar</button>` : `<button class="refbtn" id="tvSound" title="A TV só toca som depois de um toque na tela">🔇 Ativar som</button>`}
+        ${audioCtx && audioCtx.state==="running" ? `<div class="tvmenuwrap"><button class="refbtn tvsound" id="tvTest" aria-haspopup="menu" aria-expanded="${TV_MENU}" title="Testar os avisos da TV">🔊 Som e voz ligados <span class="tvcaret">▾</span></button>${TV_MENU?`<div class="tvmenu" role="menu">${TV_TESTES.map(([k,t,d])=>`<button role="menuitem" data-tvt="${k}"><b>${t}</b><small>${d}</small></button>`).join("")}</div>`:""}</div>` : `<button class="refbtn" id="tvSound" title="A TV só toca som depois de um toque na tela">🔇 Ativar som</button>`}
         ${TVV.last?`<small class="tvlast" id="tvLast">${esc(tvLastTxt())}</small>`:`<small class="tvlast" id="tvLast"></small>`}
         ${document.fullscreenElement?"":`<button class="refbtn" id="tvFull">Tela cheia</button>`}
         ${painel?`<button class="refbtn" onclick="psLogout&&psLogout()">Sair</button>`:`<a class="refbtn" href="/#expedicao" id="tvExit">Voltar ao sistema</a>`}</div>
@@ -4726,7 +4749,8 @@ function renderTV(){
   const snd=document.getElementById("tvSound"), unl=document.getElementById("tvUnlock");
   [snd,unl].forEach(b=>{ if(b) b.onclick=()=>{ unlockAudio(); setTimeout(render, 300); }; }); // a confirmação "Aviso de voz ligado" toca no unlockAudio
   document.addEventListener("pointerdown", ()=>{ try{ if(window.speechSynthesis && !TVV.buf) speechSynthesis.speak(new SpeechSynthesisUtterance(" ")); }catch(e){} }, {once:true}); // libera também a voz do navegador (reserva)
-  const tst=document.getElementById("tvTest"); if(tst) tst.onclick=()=>{ unlockAudio(); chime(true); setTimeout(()=>tvAnnounce("37526"), 1700); };
+  const tst=document.getElementById("tvTest"); if(tst) tst.onclick=ev=>{ ev.stopPropagation(); unlockAudio(); TV_MENU=!TV_MENU; render(); };
+  app.querySelectorAll("[data-tvt]").forEach(b=>b.onclick=ev=>{ ev.stopPropagation(); TV_MENU=false; render(); tvTeste(b.dataset.tvt); });
   const f=document.getElementById("tvFull"); if(f) f.onclick=()=>{ unlockAudio(); document.documentElement.requestFullscreen?.().then(()=>render()).catch(()=>{}); };
   const ex=document.getElementById("tvExit"); if(ex) ex.onclick=e=>{ e.preventDefault(); history.replaceState(null,"","/#expedicao"); state.view="orders"; state.sector="expedicao"; document.documentElement.classList.remove("tvmode"); render(); };
   // a cada minuto: busca tudo de novo (garante a fila mesmo se o tempo real cair) e redesenha
@@ -7253,8 +7277,8 @@ function tvStaleTick(){
   TV_PRIO_UNTIL=0; setTimeout(()=>{ if(tvVoiceFree() || cue) tvStaleSay(o); else delete STALE_SAID[o.id]; }, cue?1700:0);
 }
 setInterval(tvStaleTick, 5000);
-async function tvStaleSay(o){
-  const hv=o.colmeia.slice(3), L=hv[0], n=+hv.slice(1)||0, d=staleAge(o);
+async function tvStaleSay(o, dias){
+  const hv=o.colmeia.slice(3), L=hv[0], n=+hv.slice(1)||0, d=dias ?? staleAge(o);
   try{ if(audioCtx && audioCtx.state!=="running") await Promise.race([audioCtx.resume(), new Promise(ok=>setTimeout(ok,800))]); }catch(e){}
   const ok = await Promise.race([tvVoiceLoad(), new Promise(r=>setTimeout(()=>r(false),4000))]);
   if(Date.now()<TV_PRIO_UNTIL) return; // chegou um aviso mais importante enquanto carregava
