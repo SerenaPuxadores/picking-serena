@@ -4473,7 +4473,7 @@ const USERS_NAME = id => { const n = id && document.querySelector(`[data-uid="${
 const TV_CANAIS = [["consultiva","Venda Consultiva"],["ecommerce","E-commerce"]];
 let tvRefreshT=null;
 /* Envio do Mercado Livre: da 2 h antes da hora de corte até a hora, a TV mostra uma faixa e avisa por voz com 2 h, 1 h 30 e 30 min
-   de antecedência: campainha (audio/campainha-ml.mp3) + "Atenção! Faltam duas horas / Falta uma hora e meia / Faltam trinta minutos
+   de antecedência: campainha (audio/campainha-ml.wav) + "Atenção! Faltam duas horas / Falta uma hora e meia / Faltam trinta minutos
    para o envio do Mercado Livre" (cada aviso uma vez por horário de corte em cada TV, só nos 10 min seguintes ao momento dele).
    Vale para pedidos do ML ainda não enviados com prazo de hoje e hora definida (sem etiqueta liberada o ML não dá a hora). */
 const ML_AV_JAN=2*36e5;
@@ -4501,7 +4501,7 @@ function mlAudLoad(){
   try{ audioCtx ||= new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return Promise.resolve(ML_AUD.buf); }
   const get=(k,url)=>fetch(url).then(r=>{ if(!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
     .then(a=>new Promise((ok,ko)=>audioCtx.decodeAudioData(a,ok,ko))).then(b=>{ ML_AUD.buf[k]= k==="sino" ? b : tvTrim(b); });
-  ML_AUD.p=Promise.allSettled([get("sino","/audio/campainha-ml.mp3"), ...ML_AV_ETAPAS.map(([,n])=>get(n, TV_TTS+n+".mp3"))])
+  ML_AUD.p=Promise.allSettled([get("sino","/audio/campainha-ml.wav"), ...ML_AV_ETAPAS.map(([,n])=>get(n, TV_TTS+n+".mp3"))])
     .then(()=>{ if(ML_AV_ETAPAS.some(([,n])=>!ML_AUD.buf[n]) || !ML_AUD.buf.sino) setTimeout(()=>{ ML_AUD.p=null; }, 10*6e4); return ML_AUD.buf; });
   return ML_AUD.p;
 }
