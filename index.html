@@ -4070,6 +4070,7 @@ async function openOrderAsk(id){
 function openOrder(id){
   const o=ORDERS.find(x=>x.id===id); if(!o || !ecoOk(o)) return;
   if(notMine(o)){ toast(`#${o.num} passou a outro separador`); return; }
+  if(offPick(o)) return offPickMsg(o);
   newIds.delete(id); alertQueue=alertQueue.filter(x=>x!==id); showAlert();
   state.oid=id; state.count=0; state.bigItem=false; state.bipN=0; state.bipT0=0; state.bipLoc=0;
   const r=res(o), pl=pickList(o), k=pl.findIndex(x=>r[x.i].status==="pend");
@@ -4884,14 +4885,22 @@ async function skipLote(id){
   toast(`Pedido #${o.num} pulado`);
   loteNext();
 }
+/* Pedido que saiu da separação (Compras, desmembrar, encomenda, finalizado): a tela de separação de um aparelho
+   que ficou aberta não pode iniciar nem reiniciar, senão o pedido volta para a fila sem ninguém perceber */
+const OFF_PICK = ["desmembrar","analise_compras","encomenda","enc_pendente","enviado","excluido"];
+const offPick = o => !!o && OFF_PICK.includes(o.status) && !o.fase2;
+function offPickMsg(o){ toast(`#${o.num} não está mais na separação · ${statusInfo(o).t}`); state.view="orders"; state.oid=null; render(); }
 async function restartOrder(id, reopen){
   const o=ORDERS.find(x=>x.id===id); if(!o) return;
+  if(offPick(o)) return offPickMsg(o);
   const r=res(o), pl=pickList(o), done=pl.filter(x=>r[x.i].status!=="pend").length;
   const ok=await askModal({title:`Reiniciar a separação #${o.num}?`, okText:"Reiniciar",
     text:`O que já foi coletado (${done} de ${pl.length} itens) volta a zero e o tempo de picking recomeça.${o.tray&&o.trayStatus==="separando"?` A ${esc(trayLabel(o.tray))} é liberada; bipe a bandeja de novo.`:""} Devolva as peças já coletadas aos locais.`});
   if(!ok) return;
+  if(offPick(o)) return offPickMsg(o); // mudou de situação enquanto a pergunta estava aberta
   patchOrder(o.id, {status:"aguardando", res:o.items.map(()=>({status:"pend",got:0})), startedAt:null, startedBy:"",
     ...(o.tray&&o.trayStatus==="separando"?{tray:"", trayStatus:""}:{}),
+    ...(o.status!=="aguardando"&&o.status!=="separando"?{hist:[...(o.hist||[]), {t:Date.now(), by:ME.id||"", ev:`Separação reiniciada · situação: ${statusInfo(o).t} → Aguardando separação`}]}:{}),
     restarts:[...(o.restarts||[]), {at:Date.now(), by:ME.id||"", done}]});
   toast(`Separação #${o.num} reiniciada`);
   if(reopen) openOrder(o.id); else { state.view="orders"; render(); }
@@ -5083,6 +5092,7 @@ function taskCard(it){
 function renderPick(){
   const c = cur(); if(!c || !c.it){ state.view="orders"; return render(); }
   if(notMine(c.o) || !ecoOk(c.o)){ toast(`#${c.o.num} passou a outra pessoa`); state.view="orders"; state.oid=null; return render(); }
+  if(offPick(c.o)) return offPickMsg(c.o);
   const {o, r, pl, it} = c, l=it.loc, prev = state.idx>0 ? pl[state.idx-1] : null;
   const done = pl.filter(x=>r[x.i].status!=="pend").length;
   app.innerHTML = `
