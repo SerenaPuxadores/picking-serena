@@ -2,7 +2,7 @@
 
 Base de conhecimento do assistente **Lucas**. Descreve como o sistema funciona hoje, tela por tela e passo a passo. Sempre que uma atualização for publicada, este manual é atualizado junto.
 
-Última atualização: 20/11/2026 (tudo junto · remessas na colmeia).
+Última atualização: 25/11/2026 (envio parcial do Comercial passa pelo desmembramento).
 
 ---
 
@@ -74,7 +74,7 @@ Se a pré-venda já estiver no sistema, vira um **ajuste de pré-venda** (ver 3.
 
 ### 3.2 Tipos de envio
 - **Envio total**: tudo tem pronta entrega. A separação coleta tudo e o pedido vai para o envio.
-- **Envio parcial**: envia agora o que tem em estoque. Na coluna "Sob encomenda" informe a quantidade de cada item que é encomenda (ou marque "todas"). Os itens de encomenda vão direto para Compras (aba **Em aberto**, sem precisar de decisão) e Compras recebe um aviso. O que tem em estoque segue para a separação (1º envio). Quando a encomenda chegar, sai o 2º envio.
+- **Envio parcial**: envia agora o que tem em estoque. Na coluna "Sob encomenda" informe a quantidade de cada item que é encomenda (ou marque "todas"). A pré-venda **não vai direto para a separação**: vai para a aba **Desmembrar** de Compras (Compras recebe um aviso). Compras desmembra no sistema de vendas e importa o PDF da **pré-venda nova** (itens da loja): é ela que entra na fila da separação como 1º envio, com a tag **COM ENCOMENDA - 1° ENVIO**. A original fica com a encomenda e sai no 2º envio quando a encomenda chegar. Se todos os itens forem encomenda, vira "Tem encomenda" e vai para Compras decidir.
 - **Tem encomenda**: não marca nada. A pré-venda vai inteira para **Compras** (aba **Para decidir**), que decide: encomendar tudo, separar o que tem na loja e guardar na colmeia aguardando o resto, ou enviar tudo. O botão fica **Enviar para Compras**.
 
 Outros tipos que aparecem no sistema (definidos por Compras ou pelo administrador): **Encomenda total** (todos os itens são encomenda; não passa pela separação até chegar) e **Aguarda encomenda** (separa o que tem e guarda na colmeia até a encomenda chegar).
@@ -293,7 +293,7 @@ Vale para toda pré-venda da Venda Consultiva que tem **itens da loja e encomend
 Se a nota da última encomenda for conferida enquanto ainda havia uma remessa para desmembrar, não precisa desmembrar: a original vai para a separação com tudo o que chegou.
 
 ### 7.1b Envio parcial · desmembrar a pré-venda
-Quando a pré-venda tem parte da loja e parte encomenda, o card de **Para decidir** mostra duas opções: **Tudo junto · aguarda na colmeia** (as peças da loja esperam a encomenda na colmeia e sai tudo num envio) ou **Envio parcial · desmembrar a pré-venda** (já vem marcada quando o Comercial pediu envio parcial). No envio parcial a pré-venda **não vai para a separação**: vai para a aba **Desmembrar** de Compras.
+Quando a pré-venda tem parte da loja e parte encomenda, o card de **Para decidir** mostra duas opções: **Tudo junto · aguarda na colmeia** (as peças da loja esperam a encomenda na colmeia e sai tudo num envio) ou **Envio parcial · desmembrar a pré-venda** (já vem marcada quando o Comercial pediu envio parcial). No envio parcial a pré-venda **não vai para a separação**: vai para a aba **Desmembrar** de Compras. Quando o **Comercial** lança como **Envio parcial** (com itens da loja e encomenda), a pré-venda já cai direto em **Desmembrar**, sem passar por Para decidir (o card mostra "Comercial pediu envio parcial").
 - **Aba Desmembrar**: mostra, por item, o que vai no **1º envio · loja** e o que fica na **encomenda**. Compras desmembra no sistema de vendas (a pré-venda **nova** leva os itens da loja; a **original** fica com a encomenda) e toca em **Importar PDF da pré-venda nova**.
 - **Conferência**: o sistema compara a pré-venda nova com a decisão (decidido · loja × na nova × fica na encomenda). Se tudo confere: **Confirmar desmembramento**. Se a quantidade não bate: corrija no sistema de vendas e importe de novo, ou **Usar a nova e recalcular a encomenda**. Não aceita: o PDF da própria original, item que não está na original, quantidade maior que a vendida, ou número que já está em separação. Avisa se o cliente for diferente.
 - **Depois de confirmar**: a pré-venda nova entra na fila da separação com a tag roxa **COM ENCOMENDA - 1° ENVIO** (mesma transportadora e retirada da original) — é com esse número que a conferência é filmada. A original vira **encomenda total** só com os itens de encomenda (card mostra "1º envio: #nova") e segue o caminho normal quando a encomenda chega (2º envio).

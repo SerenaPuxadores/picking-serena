@@ -1739,7 +1739,7 @@ function draftHTML(d){
     <div><h2 style="margin-bottom:10px">2. Tipo de envio</h2>
     <div class="modes" role="radiogroup">
       <label class="mode"><input type="radio" name="mode" value="total" ${d.mode==="total"?"checked":""}><span><b>Envio total</b><small>Todas as peças têm pronta entrega. A expedição separa tudo e o pedido vai direto para o envio.</small></span></label>
-      <label class="mode"><input type="radio" name="mode" value="parcial" ${d.mode==="parcial"?"checked":""}><span><b>Envio parcial</b><small>Envia agora o que tem em estoque. Os itens marcados como encomenda vão para Compras encomendar e seguem depois, em um 2º envio.</small></span></label>
+      <label class="mode"><input type="radio" name="mode" value="parcial" ${d.mode==="parcial"?"checked":""}><span><b>Envio parcial</b><small>Envia agora o que tem em estoque. Antes da separação, Compras desmembra a pré-venda: a pré-venda nova (itens da loja) é separada como 1º envio e a encomenda segue depois, em um 2º envio.</small></span></label>
       <label class="mode"><input type="radio" name="mode" value="temenc" ${d.mode==="temenc"?"checked":""}><span><b>Tem encomenda</b><small>A pré-venda vai para Compras, que define o que encomendar, se separa o que tem na loja (colmeia) ou aguarda chegar tudo, e informa o prazo.</small></span></label>
     </div>
     <div class="flagrow"><label class="retira green ${d.retira?"on":""}"><input type="checkbox" id="retiraChk" ${d.retira?"checked":""}><span><b>Retira na Loja</b></span></label>
@@ -1840,6 +1840,7 @@ function sendDraft(){
   if(enc && !hasEnc){ state.draftErr="Informe pelo menos um item sob encomenda, ou escolha Envio total."; return render(); }
   if(m==="parcial" && hasEnc && !hasPick) m = "temenc"; // tudo encomenda: Compras decide
   const toCompras = m==="temenc"; // Compras decide se separa o que tem na loja (colmeia) ou aguarda chegar tudo
+  const toDesm = m==="parcial" && hasEnc && hasPick; // envio parcial: Compras desmembra antes (a pré-venda nova do 1º envio é que vai para a separação)
   const missing = []; // prazo da encomenda: Compras informa na importação do pedido do fornecedor
   if(missing.length){ missing.forEach(i=>document.getElementById("eta-"+i)?.classList.add("invalid")); state.draftErr=""; toast("Informe a previsão de chegada"); return; }
   const noLoc = items.filter(it=>it.qty-it.qtyEnc>0 && !it.loc);
@@ -1847,14 +1848,15 @@ function sendDraft(){
   const prev = ORDERS.find(o=>o.id===d.id);
   const slot = null; // a colmeia é escolhida quando Compras encaminha para a separação
   const o = { id:d.id, num:d.num, docType:d.docType||"", date:d.date, time:d.time, clientCode:d.clientCode, client:d.client, city:d.city, seller:d.seller, obs:d.obs, total:d.total,
-    mode:m, v2:true, items, remessa:1, status: toCompras ? "analise_compras" : "aguardando", modeCom: m, createdAt: Date.now(), createdBy: ME.id||"", canal:"consultiva", retira: !!(d.retira||d.naLoja), naLoja: !!d.naLoja, transportadora: (d.transportadora ?? carrierFromObs(d.obs)) || "" };
+    mode:m, v2:true, items, remessa:1, status: toCompras ? "analise_compras" : toDesm ? "desmembrar" : "aguardando", ...(toDesm?{queuedAt:null}:{}), modeCom: m, createdAt: Date.now(), createdBy: ME.id||"", canal:"consultiva", retira: !!(d.retira||d.naLoja), naLoja: !!d.naLoja, transportadora: (d.transportadora ?? carrierFromObs(d.obs)) || "" };
   if(slot) o.colmeia = slot;
   if(d.reenvio){ o.reenvio=d.reenvio; o.reenvioDe=d.reenvioDe||""; }
   if(d.adminEdited) o.hist=[{t:Date.now(), by:ME.id||"", ev:"Itens da pré-venda ajustados pelo administrador antes de enviar"}];
+  if(toDesm) o.hist=[...(o.hist||[]), {t:Date.now(), by:ME.id||"", ev:"Envio parcial pedido pelo Comercial · aguardando Compras desmembrar (a pré-venda nova do 1º envio vai para a separação)"}];
   res(o);
   state.draft=null; state.draftErr="";
   saveOrder(o);
-  toast(toCompras ? `Pré-venda ${o.num} enviada a Compras` : `Pré-venda ${o.num} enviada`);
+  toast(toCompras ? `Pré-venda ${o.num} enviada a Compras` : toDesm ? `Pré-venda ${o.num} enviada a Compras para desmembrar` : `Pré-venda ${o.num} enviada`);
 }
 
 /* ---- Encomendas: o separador cadastra uma pré-venda e amarra a uma colmeia ---- */
@@ -1942,7 +1944,7 @@ function askTransferMode(o, canal){
         <p>O pedido vai para <b>${canal==="ecommerce"?"E-commerce":"Venda Consultiva"}</b>. Confirme como ele será enviado, igual ao Comercial quando sobe a pré-venda.</p>
         <div class="modes" role="radiogroup">
           <label class="mode"><input type="radio" name="tmode" value="total" ${t.mode==="total"?"checked":""}><span><b>Envio total</b><small>Todas as peças têm pronta entrega. A expedição separa tudo e o pedido vai direto para o envio.</small></span></label>
-          <label class="mode"><input type="radio" name="tmode" value="parcial" ${t.mode==="parcial"?"checked":""}><span><b>Envio parcial</b><small>Envia agora o que tem em estoque. Os itens marcados como encomenda vão para Compras encomendar e seguem depois, em um 2º envio.</small></span></label>
+          <label class="mode"><input type="radio" name="tmode" value="parcial" ${t.mode==="parcial"?"checked":""}><span><b>Envio parcial</b><small>Envia agora o que tem em estoque. Antes da separação, Compras desmembra a pré-venda: a pré-venda nova (itens da loja) é separada como 1º envio e a encomenda segue depois, em um 2º envio.</small></span></label>
           <label class="mode"><input type="radio" name="tmode" value="temenc" ${t.mode==="temenc"?"checked":""}><span><b>Tem encomenda</b><small>O pedido vai para Compras, que define o que encomendar, se separa o que tem na loja (colmeia) ou aguarda chegar tudo, e informa o prazo.</small></span></label>
         </div>
         <div class="flagrow"><label class="retira green ${t.retira?"on":""}"><input type="checkbox" id="tmRet" ${t.retira?"checked":""}><span><b>Retira na Loja</b></span></label>
@@ -2310,7 +2312,7 @@ const COMPRA_LABEL = { falta:["A encomendar","bad"], parcial:["Encomendado em pa
 function renderCompras(){
   if(state.nfEdit) return renderNfEdit();
   const decide = ORDERS.filter(o=>toDecide(o) && !isEco(o)).sort((a,b)=>(urgRank(b)-urgRank(a)) || (a.createdAt||0)-(b.createdAt||0));
-  const desm = ORDERS.filter(o=>o.status==="desmembrar").sort((a,b)=>(a.decidedAt||0)-(b.decidedAt||0));
+  const desm = ORDERS.filter(o=>o.status==="desmembrar").sort((a,b)=>(a.decidedAt||a.createdAt||0)-(b.decidedAt||b.createdAt||0));
   const tab = state.cTab || (decide.length ? "decidir" : desm.length ? "desmembrar" : "abertas");
   const open = ORDERS.filter(encOpen).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
   const done = ORDERS.filter(o=>!isEco(o) && hasEnc(o) && encArrived(o) && o.status!=="excluido").sort((a,b)=>(b.arrivedAt||0)-(a.arrivedAt||0)).slice(0,60);
@@ -2553,7 +2555,7 @@ function desmCard(o){
   const junto=desmKind(o)==="junto", E1=junto?"1ª remessa · loja":"1º envio · loja";
   const its=(o.items||[]), pc=its.reduce((s,it)=>s+loja(it),0), en=its.reduce((s,it)=>s+(+it.qtyEnc||0),0);
   return `<article class="cpcard dec">
-    <div class="cphead"><b class="mono">#${esc(o.num)}</b><span class="chip urg">Aguardando desmembramento</span><span class="muted-s">Compras decidiu ${junto?"tudo junto":"envio parcial"}${o.decidedAt?" há "+since(o.decidedAt):""}</span>${o.naLoja?`<span class="retirabar">CLIENTE NA LOJA</span>`:o.retira?`<span class="retirabar rb-green">RETIRA NA LOJA</span>`:""}</div>
+    <div class="cphead"><b class="mono">#${esc(o.num)}</b><span class="chip urg">Aguardando desmembramento</span><span class="muted-s">${!o.decidedAt && o.modeCom==="parcial" ? `Comercial pediu envio parcial${o.createdAt?" há "+since(o.createdAt):""}` : `Compras decidiu ${junto?"tudo junto":"envio parcial"}${o.decidedAt?" há "+since(o.decidedAt):""}`}</span>${o.naLoja?`<span class="retirabar">CLIENTE NA LOJA</span>`:o.retira?`<span class="retirabar rb-green">RETIRA NA LOJA</span>`:""}</div>
     <div class="cpcli">${esc(o.client)}<small>${[o.seller?"Vendedor "+esc(o.seller):"", transpOf(o)?esc(transpOf(o)):""].filter(Boolean).join(" · ")}</small></div>
     <div class="cpnote">Desmembre no sistema de vendas: a <b>pré-venda nova</b> leva os itens da loja (${junto?"1ª remessa":"1º envio"}) e a <b>#${esc(o.num)}</b> fica com a encomenda. Depois importe aqui o PDF da pré-venda nova: o sistema confere os itens e manda ela para a separação${junto?". Ela é guardada na colmeia e espera a encomenda: sai tudo junto":""}.</div>
     <div class="cptwrap"><table class="cptab"><thead><tr><th>Código</th><th>Item</th><th class="r">Vendido</th><th class="r">${E1}</th><th class="r">Encomenda · #${esc(o.num)}</th></tr></thead><tbody>
@@ -2619,7 +2621,7 @@ function openDesm(o, p){
     ${c.errs.length?`<div class="desmbox bad">${c.errs.map(esc).join("<br>")}</div>`
       : c.diff && K==="chegada"?`<div class="desmbox bad">A pré-venda nova <b>não bate</b> com o que chegou. Corrija no sistema de vendas e importe de novo, ou use a nova como está: o que não for nela continua na #${esc(o.num)}.</div>`
       : !c.diff && K!=="parcial"?`<div class="desmbox">Tudo confere. A <b>#${esc(p.num)}</b> (${TT}) vai para a fila da separação e é <b>guardada na colmeia</b>${grpHive(o)?` <b>${esc(grpHive(o).colmeia.slice(3))}</b>, junto com as outras remessas`:""}. A <b>#${esc(o.num)}</b> continua aguardando ${K==="chegada"?"o resto da ":"a "}encomenda. Sai tudo junto quando chegar tudo.</div>`
-      : c.diff?`<div class="desmbox bad">A pré-venda nova <b>não bate</b> com a decisão de Compras. Corrija no sistema de vendas e importe de novo, ou use a pré-venda nova como está: a encomenda da #${esc(o.num)} é recalculada (coluna "Fica na encomenda").</div>`
+      : c.diff?`<div class="desmbox bad">A pré-venda nova <b>não bate</b> com ${o.decidedAt?"a decisão de Compras":"o envio parcial pedido pelo Comercial"}. Corrija no sistema de vendas e importe de novo, ou use a pré-venda nova como está: a encomenda da #${esc(o.num)} é recalculada (coluna "Fica na encomenda").</div>`
       : `<div class="desmbox">Tudo confere. A <b>#${esc(p.num)}</b> vai para a fila da separação com a tag <b>Com Encomenda - 1° Envio</b>, e a <b>#${esc(o.num)}</b> fica aguardando a encomenda.</div>`}
     <div class="mact"><button class="btn ghost" id="mNo">Cancelar</button>${c.errs.length?"":`<button class="btn primary" id="mOk">${c.diff?(K==="chegada"?"Usar a nova como está":"Usar a nova e recalcular a encomenda"):"Confirmar desmembramento"}</button>`}</div></div>`;
   ov.onclick=e=>{ if(e.target===ov) close(); };
@@ -7557,7 +7559,7 @@ function gAlerts(){
   const pend=act.filter(o=>["aguardando","separando"].includes(o.status)), prodUse={};
   pend.forEach(o=>pickList(o).forEach(x=>{ const it=o.items[x.i]; (prodUse[it.code] ||= {it, n:0, o:[]}).n++; prodUse[it.code].o.push("#"+o.num); }));
   const pr=Object.values(prodUse);
-  add("desmembrar","warn","Aguardando desmembramento","Envio parcial decidido, mas Compras ainda não importou a pré-venda nova do 1º envio. A separação só começa depois.",
+  add("desmembrar","warn","Aguardando desmembramento","Envio parcial pedido/decidido, mas Compras ainda não importou a pré-venda nova do 1º envio. A separação só começa depois.",
     O.filter(o=>o.status==="desmembrar" && now-(o.decidedAt||o.createdAt||now)>4*G_H).map(o=>row(o, `há ${gAgo(o.decidedAt||o.createdAt)}`, o.decidedAt)));
   add("falta_1envio","crit","1º envio com peça faltando","A separação do 1º envio terminou com falta. Ajuste a pré-venda (Editar pedido → Itens do 1º envio) para a peça voltar à encomenda e Compras ser avisado.",
     O.filter(o=>o.envio1De && o.pickedAt && !o.envioAdjAt && (o.res||[]).some(r=>r && (r.status==="miss"||r.status==="part")) && !["enviado","excluido"].includes(o.status)).map(o=>row(o, `${(o.res||[]).filter(r=>r&&(r.status==="miss"||r.status==="part")).length} item(ns) com falta`, o.pickedAt)));
@@ -7930,7 +7932,11 @@ function sendAdjust(d){
   if(!picked){
     // ainda não separado: só atualiza (mantém a posição na fila)
     const toCompras = d.mode==="temenc" && !keepMode;
-    o = {...prev, ...head, items, res:null, status: toCompras ? "analise_compras" : prev.status, hist, adjustedAt:now, ...(adjCompras?{adjCompras}:{})};
+    // envio parcial ainda não desmembrado: vai (ou continua) para Compras desmembrar; se deixou de ser parcial, volta para a fila
+    const canDesm = !isEco(prev) && !prev.envio1 && !prev.desmRem && ["aguardando","desmembrar"].includes(prev.status);
+    const toDesm = canDesm && mode==="parcial" && items.some(it=>it.qtyEnc>0) && items.some(it=>it.qty-it.qtyEnc>0);
+    const backQueue = prev.status==="desmembrar" && canDesm && !toDesm && !toCompras && mode!=="aguarda";
+    o = {...prev, ...head, items, res:null, status: toCompras ? "analise_compras" : toDesm ? "desmembrar" : backQueue ? "aguardando" : prev.status, ...(toDesm && prev.status!=="desmembrar"?{queuedAt:null}:{}), ...(backQueue?{queuedAt:now}:{}), hist, adjustedAt:now, ...(adjCompras?{adjCompras}:{})};
     res(o);
   } else {
     // já separado (ou em separação): recalcula o que foi coletado e cria as tarefas de ajuste
