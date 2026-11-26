@@ -692,6 +692,72 @@ details.cpcard summary{display:flex;justify-content:space-between;align-items:ce
 .nah{margin-top:8px}.nahint{padding:10px 12px;border-radius:10px;background:var(--bg);font-size:13px;color:var(--muted);line-height:1.4}.nahint.on{background:color-mix(in srgb,var(--route) 12%,var(--surface));color:var(--ink)}
 .nadirty{position:sticky;bottom:8px;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:12px;padding:10px 14px;border-radius:12px;background:var(--ink);color:var(--bg);box-shadow:0 6px 20px rgba(0,0,0,.25);font-size:14px}.nadirty{padding-right:140px}.nadirty .btn{width:auto !important;flex:none !important;min-height:34px;height:34px;padding:0 14px;font-size:14px;border-radius:9px}
 @media (max-width:900px){.seg.napanes{display:flex}.nahdr .sub{display:none}.nahdr{flex-wrap:wrap}.nahdr .cpbtns{flex-direction:row;width:100%}.nahdr .cpbtns .btn{flex:1;width:auto}.nadirty{padding-right:76px}.nagrid{grid-template-columns:1fr}.nagrid[data-pane="itens"] .nacr,.nagrid[data-pane="pvs"] .nacl{display:none}.nacol{position:static}.nalist{max-height:none}}
+/* Amarrar nota fiscal · layout novo (lista + painel ao lado) */
+.nbhdr .cpbtns{flex-wrap:wrap}
+.nbmeter{margin-top:10px}.nbmeter .nbbar{height:10px;border-radius:99px;background:var(--line);overflow:hidden}.nbmeter .nbbar i{display:block;height:100%;background:var(--ok);transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.nbmeter .lg{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:5px}.nbmeter .lg b{color:var(--ink)}
+.nbtools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}.nbtools .tinput{flex:1 1 240px;max-width:380px}.nbtools .seg .n{opacity:.75;font-weight:500;margin-left:2px}
+.nbwork{display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:16px;align-items:start}
+.nblist{display:flex;flex-direction:column;gap:8px}.nblist .pager{margin-top:4px}
+.nbrow{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:44px minmax(0,1fr) auto 20px;gap:4px 12px;align-items:center;padding:11px 12px;border:1px solid var(--line);border-radius:14px;background:var(--surface);transition:border-color .2s,box-shadow .2s}
+.nbrow:hover{border-color:color-mix(in srgb,var(--ink) 25%,var(--line))}.nbrow:focus-visible{outline:2px solid var(--route);outline-offset:2px}
+.nbrow.on{border-color:color-mix(in srgb,var(--route) 60%,var(--line));box-shadow:0 0 0 1px color-mix(in srgb,var(--route) 40%,transparent),0 4px 14px rgba(16,24,32,.08)}
+.nbring{position:relative;width:44px;height:44px}.nbring svg{width:44px;height:44px;transform:rotate(-90deg)}.nbring circle{fill:none;stroke-width:5}.nbring .bg{stroke:var(--line)}
+.nbring .fg{stroke:var(--route);stroke-linecap:round;transition:stroke-dashoffset .5s cubic-bezier(.2,.8,.2,1)}.nbring.full .fg{stroke:var(--ok)}.nbring.over .fg{stroke:var(--bad)}
+.nbring span{position:absolute;inset:0;display:grid;place-items:center;font:700 12px var(--display)}
+.nbrt .d{display:block;font-weight:600;line-height:1.25}.nbrt .m{display:flex;flex-wrap:wrap;gap:3px 9px;align-items:center;margin-top:3px;font-size:12.5px;color:var(--muted)}.nbrt .mono{font-family:var(--mono)}
+.nbdots{display:inline-flex}.nbdots i{width:16px;height:16px;border-radius:50%;border:2px solid var(--surface);margin-left:-5px}.nbdots i:first-child{margin-left:0}
+.nbsm{font-size:12px;color:var(--muted);white-space:nowrap}.nbst{min-width:max-content;display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-align:right}.nbq{font:700 19px/1 var(--display);white-space:nowrap}.nbq small{font:500 12.5px var(--body);color:var(--muted)}
+.nbchev{width:20px;height:20px;fill:none;stroke:var(--muted);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}.nbrow.on .nbchev{stroke:var(--route)}
+.nbpill{font-size:12px;font-weight:600;border-radius:99px;padding:2px 9px;white-space:nowrap}.nbpill.sug{background:color-mix(in srgb,var(--route) 14%,var(--surface));color:var(--route)}
+.nbpill.ok{background:var(--ok-soft);color:var(--ok)}.nbpill.stk{background:var(--bg);color:var(--muted);border:1px solid var(--line)}.nbpill.war{background:var(--accent-soft);color:var(--accent-ink)}.nbpill.bad{background:var(--bad-soft);color:var(--bad)}
+.nbpanel{position:sticky;top:12px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px 18px;min-height:380px;box-shadow:0 1px 2px rgba(16,24,32,.05),0 4px 14px rgba(16,24,32,.05);animation:nbslide .28s cubic-bezier(.2,.8,.2,1)}
+.nbempty{min-height:340px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;color:var(--muted)}.nbempty svg{width:110px;margin-bottom:6px}.nbempty b{font:700 20px var(--display);color:var(--ink)}
+.nbph h2{margin:2px 0 10px;font:700 24px/1.1 var(--display)}.nbph .lnk{margin-bottom:8px}
+.nbwarn{background:var(--accent-soft);color:var(--accent-ink);border-radius:10px;padding:8px 11px;font-size:13.5px;margin-bottom:10px}.nbwarn.bad{background:var(--bad-soft);color:var(--bad)}
+.nbcols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.nbsec h3{margin:0;font:700 15px var(--display);letter-spacing:.02em;color:var(--muted);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.nbsec h3 span{font:500 12.5px var(--body)}
+.nbsub{font-size:12.5px;color:var(--muted);margin:2px 0 8px}.nbsub b{color:var(--ink)}.nbsub .okc,.okc{color:var(--ok)}.warnc{color:var(--accent-ink)}
+.nbpull{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px}.nbpull .tinput{flex:1 1 200px}
+.nbzone{display:flex;flex-direction:column;gap:8px;min-height:64px;border-radius:12px;outline:2px dashed transparent;outline-offset:3px;transition:background .2s,outline-color .2s}
+.nbzone.dz{outline-color:var(--route);background:color-mix(in srgb,var(--route) 10%,transparent)}
+.nbph0{border:1.5px dashed var(--line);border-radius:12px;padding:14px;color:var(--muted);font-size:13.5px;text-align:center}
+.nbcard{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface)}.nbcard.am{border-left:5px solid var(--c)}.nbcard.sg{background:var(--bg);cursor:grab}.nbcard.dragging{opacity:.4}
+.nbcard .l1{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.nbcard .cli{color:var(--muted);font-weight:500;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nbpv{all:unset;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:6px}.nbpv i{width:10px;height:10px;border-radius:50%;background:var(--c)}.nbpv u{text-decoration:underline;text-decoration-color:transparent;text-underline-offset:3px}.nbpv:hover u{text-decoration-color:currentColor}.nbpv:focus-visible{outline:2px solid var(--route);border-radius:4px}
+.nbdest{all:unset;cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);border:1px dashed var(--line);border-radius:6px;padding:0 6px;white-space:nowrap}.nbdest.need{color:var(--bad);border-color:var(--bad);background:var(--bad-soft)}
+.nbcard .it{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.4}.nbcard .it b{color:var(--ink)}.nbcard .mono{font-family:var(--mono)}
+.nbtags{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.nbtag{font-size:11.5px;font-weight:600;border-radius:6px;padding:1px 7px;background:color-mix(in srgb,var(--route) 14%,var(--surface));color:var(--route)}.nbtag.w{background:var(--accent-soft);color:var(--accent-ink)}.nbtag.g{background:var(--surface);color:var(--muted);border:1px solid var(--line)}
+.nbcard .l2{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px}.nbcard .left{font-size:13px;color:var(--muted)}.nbcard .left b{color:var(--ink);font:700 16px var(--display)}
+.nbgo{height:36px;border:0;border-radius:9px;background:var(--route);color:#fff;font-weight:700;padding:0 13px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;transition:filter .15s,transform .1s}.nbgo:hover{filter:brightness(1.08)}.nbgo:active{transform:scale(.96)}.nbgo[disabled]{background:var(--line);color:var(--muted);cursor:default}
+.nbgo kbd{font:600 11px var(--mono);background:rgba(255,255,255,.2);border-radius:4px;padding:1px 5px}.nbgo.wide{width:100%;justify-content:center;height:42px;margin-top:12px}
+.nbstep{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--surface)}.nbstep button{border:0;background:none;width:36px;height:34px;font-size:18px;font-weight:600;color:var(--ink);cursor:pointer}.nbstep button:hover{background:var(--bg)}
+.nbstep input{width:48px;height:34px;border:0;border-inline:1px solid var(--line);text-align:center;font:700 16px var(--display);background:none;color:var(--ink)}
+.nbx{border:0;background:none;color:var(--muted);font-size:13px;font-weight:600;padding:6px 8px;border-radius:7px;cursor:pointer}.nbx:hover{background:var(--bad-soft);color:var(--bad)}
+.nbothers{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px}
+.nboc{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:7px;padding:2px 8px;color:var(--muted);background:var(--surface);white-space:nowrap;font:inherit}
+.nboc.here{color:var(--route);font-weight:600;border-color:color-mix(in srgb,var(--route) 45%,var(--line));cursor:pointer}.nboc.here:hover{background:color-mix(in srgb,var(--route) 10%,var(--surface))}.nboc.okd{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,var(--line))}
+.nbscrim{position:fixed;inset:0;background:rgba(10,15,20,.32);z-index:40;animation:nbfade .2s}
+.nbsheet{position:fixed;top:0;right:0;bottom:0;width:min(480px,100vw);background:var(--surface);z-index:41;box-shadow:-8px 0 30px rgba(0,0,0,.18);display:flex;flex-direction:column;animation:nbsheet .3s cubic-bezier(.2,.8,.2,1)}
+.nbsheet header{padding:18px 20px 14px;border-bottom:1px solid var(--line)}.nbsheet header .r{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.nbsheet h2{margin:0;font:700 26px/1.1 var(--display);display:flex;align-items:center;gap:9px}.nbsheet h2 i{width:13px;height:13px;border-radius:50%;background:var(--c)}
+.nbclose{border:0;background:var(--bg);width:40px;height:40px;border-radius:10px;font-size:20px;color:var(--ink);cursor:pointer}
+.nbpg{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin:12px 0 5px}.nbpg i{display:block;height:100%;background:var(--ok);transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.nbsbody{overflow:auto;padding:6px 20px 24px;flex:1}.nbgrp{margin-top:14px}.nbgrp h4{margin:0 0 4px;font:700 14px var(--display);letter-spacing:.03em;color:var(--muted)}
+.nbsi{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}.nbsi:last-child{border-bottom:0}
+.nbsi .ic{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700}.nbsi .ic.ok{background:var(--ok-soft);color:var(--ok)}.nbsi .ic.here{background:color-mix(in srgb,var(--route) 14%,var(--surface));color:var(--route)}.nbsi .ic.wait{border:1px dashed var(--line);color:var(--muted)}.nbsi .ic.stk{background:var(--bg);color:var(--muted)}
+.nbsi .t{font-size:14px}.nbsi .t small{display:block;color:var(--muted);font-size:12.5px}
+.nbtoast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);z-index:60;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:8px 8px 8px 14px;display:flex;gap:12px;align-items:center;max-width:calc(100vw - 24px);font-size:14px}
+.nbtoast.nbin{animation:nbup .25s cubic-bezier(.2,.8,.2,1)}.nbtoast button{border:0;background:color-mix(in srgb,var(--route) 14%,var(--surface));color:var(--route);font-weight:700;border-radius:8px;height:34px;padding:0 12px;cursor:pointer;white-space:nowrap}
+.nadirty .nbdb{display:flex;gap:8px;flex-wrap:wrap}.nadirty .nbdb .btn{height:36px;min-height:36px;padding:0 14px;font-size:14px;width:auto}.nadirty .nbdb .btn.ghost{color:var(--bg);border-color:color-mix(in srgb,var(--bg) 40%,transparent);background:transparent}
+.nbrel{max-width:560px}.nbrl{display:flex;flex-direction:column;gap:8px;max-height:min(50vh,440px);overflow:auto;margin:6px 0}
+.nbrli{border:1px solid var(--line);border-left:5px solid var(--c);border-radius:12px;padding:9px 12px;display:grid;gap:4px;justify-items:start}.nbrli .nbpill{white-space:normal}
+.nbmsum{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}.nbmsum b{color:var(--ink)}
+.nbnew{animation:nbpop .35s cubic-bezier(.2,.8,.2,1)}
+@keyframes nbpop{from{opacity:0;transform:scale(.97) translateY(4px)}}@keyframes nbslide{from{opacity:0;transform:translateX(12px)}}@keyframes nbsheet{from{opacity:0;transform:translateX(40px)}}@keyframes nbfade{from{opacity:0}}@keyframes nbup{from{opacity:0;transform:translate(-50%,10px)}}
+@media (max-width:1200px){.nbcols{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:900px){.nbwork{grid-template-columns:minmax(0,1fr)}.nbwork[data-pane="itens"] .nbpanel,.nbwork[data-pane="pvs"] .nblist{display:none}.nbpanel{position:static;padding:14px}.nbtools .tinput{max-width:none}.nbrow{grid-template-columns:40px minmax(0,1fr) auto}.nbchev{display:none}.nbtoast{bottom:90px}}
+@media (prefers-reduced-motion:reduce){.nbpanel,.nbsheet,.nbscrim,.nbtoast,.nbnew{animation:none!important}.nbring .fg,.nbmeter .nbbar i,.nbpg i{transition:none}}
 .elev{flex:none}
 .e-lvl{fill:var(--floor);stroke:var(--rack);stroke-width:1.5}
 .e-lvl.on{fill:var(--accent);stroke:var(--ink)}
@@ -2345,8 +2411,8 @@ function renderCompras(){
       ${pgn.items.map(n=>{ const L=n.lines||[], am=L.filter(l=>(l.alloc||[]).length).length, pv=new Set(L.flatMap(l=>(l.alloc||[]).map(a=>a.oid))).size;
         return `<tr><td><b class="mono">${esc(n.num)}</b></td><td>${esc(n.forn||"—")}</td><td class="tnum">${new Date(n.importedAt||n.createdAt||0).toLocaleDateString("pt-BR")}</td><td class="r tnum">${L.length||"—"}</td>
           <td>${!L.length?`<span class="chip bad">nota sem itens: importe o XML</span>`:am?`<span class="chip enc">${am} ite${am===1?"m":"ns"} · ${pv} pré-venda${pv===1?"":"s"}</span>`:`<span class="chip">tudo para estoque</span>`}</td>
-          <td>${n.received?`<span class="chip ${n.received.div?"bad":"done"}">Recebida${n.received.div?" com divergência":""}</span>`:`<span class="chip warn">Aguardando chegada</span>`}</td>
-          <td class="r">${L.length?`<button class="mini ${n.received && !am?"on":""}" data-nfedit="${esc(n.id)}">${am?"Ver amarração":"Amarrar"}</button>`:""}</td></tr>`; }).join("")}</tbody></table></div></div>${pgn.pager}`
+          <td>${n.draft?`<span class="chip warn" title="Salvo com Salvar e continuar depois: ainda não foi liberado">Amarração em rascunho</span> `:""}${n.received?`<span class="chip ${n.received.div?"bad":"done"}">Recebida${n.received.div?" com divergência":""}</span>`:`<span class="chip warn">Aguardando chegada</span>`}</td>
+          <td class="r">${L.length?`<button class="mini ${n.received && !am?"on":""}" data-nfedit="${esc(n.id)}">${n.draft?"Continuar amarração":am?"Ver amarração":"Amarrar"}</button>`:""}</td></tr>`; }).join("")}</tbody></table></div></div>${pgn.pager}`
       : `<div class="empty">${q?"Nenhuma nota com essa busca.":"Nenhuma nota fiscal importada ainda. Use <b>Importar nota fiscal</b>."}</div>`;
   } else if(tab==="fornecedor"){
     const pgf = pageOf(purch, "cpforn", 10);
@@ -3321,26 +3387,26 @@ function startNfEdit(nf, fresh){
   const N = fresh ? nf : JSON.parse(JSON.stringify(nf));
   if(fresh){ N.lines.forEach(l=>{ l.sku=skuFor(N.forn, l.code); l.alloc=[]; });
     if(ex?.lines?.length) N.lines.forEach((l,k)=>{ const o=ex.lines.find(x=>x.code===l.code && x.qty===l.qty); if(o){ l.sku=l.sku||o.sku; l.alloc=JSON.parse(JSON.stringify(o.alloc||[])); } });
-    else N.lines.forEach(l=>{ l.alloc=autoAlloc(l, N.forn); }); }
+    else N.lines.forEach(l=>{ l.alloc=autoAlloc(l, N.forn); });
+    if(ex?.draft?.lines?.length===N.lines.length && (ex.lines||[]).every((o,k)=>o.code===N.lines[k].code)) N.lines.forEach((l,k)=>{ l.alloc=JSON.parse(JSON.stringify(ex.draft.lines[k]||[])); }); }
+  else if(N.draft?.lines?.length===N.lines.length) N.lines.forEach((l,k)=>{ l.alloc=JSON.parse(JSON.stringify(N.draft.lines[k]||[])); }); // continua o rascunho salvo
   N.lines.forEach(l=>{ l.alloc ||= []; });
   resetPage("naL"); resetPage("naR");
-  state.nfEdit={ N, id: ex ? ex.id : null, fresh:!!fresh, dirty:!!fresh, auto: fresh && !ex?.lines?.length ? N.lines.reduce((t,l)=>t+l.alloc.length,0) : 0, sel:null, enc:null, qL:"", qR:"", fL:"todos", pane:"itens", err:"" };
+  state.nfEdit={ N, id: ex ? ex.id : null, fresh:!!fresh, dirty:!!fresh, auto: fresh && !ex?.lines?.length ? N.lines.reduce((t,l)=>t+l.alloc.length,0) : 0, sel:null, enc:null, qL:"", qR:"", fL:"estq", pane:"itens", err:"", undo:[], sheet:null };
   render(); scrollTo(0,0);
 }
 /* ---- Tutorial da amarração: destaca cada parte da tela com um balão explicando o que fazer ---- */
 function nfTour(){
   const mob=()=>matchMedia("(max-width:900px)").matches;
   const steps=[
-    {sel:".nahead", t:"Dados da nota", d:"Confira o fornecedor, o número da NF e quantas caixas vieram. Aqui em baixo aparece o resumo: quantos itens já estão amarrados e quantos vão para o estoque."},
-    {sel:".nacl .nach", pane:"itens", t:"Itens da nota", d:"A coluna azul, embaixo deste título, mostra tudo o que veio na nota fiscal. Item com fundo amarelo já está amarrado a uma pré-venda; os outros vão para o estoque."},
-    {sel:"#naQL", pane:"itens", t:"Buscar item da nota", d:"Digite o código ou parte da descrição para achar o item na nota."},
-    {sel:".nafil", pane:"itens", t:"Filtros", d:"<b>Com sugestão</b>: itens que o sistema acha que são de alguma pré-venda. <b>Amarrados</b>: o que já foi ligado. <b>Estoque</b>: o que ainda não tem pré-venda."},
-    {sel:".nai", pane:"itens", t:"1. Toque no item", d:"Toque num item da nota. Do lado das pré-vendas aparecem primeiro as <b>sugestões</b> (mesmo pedido ao fornecedor, mesmo produto ou descrição parecida)."},
-    {sel:".nacr .nach", pane:"pvs", t:"2. Escolha a pré-venda", d:"Nesta coluna estão as pré-vendas esperando encomenda: número, cliente e o produto (SKU e descrição). Depois de tocar no item da nota, toque em <b>Amarrar</b> na pré-venda certa. A quantidade entra com o que falta, e você ajusta com − e +."},
-    {sel:"#naQR", pane:"pvs", t:"Buscar pré-venda", d:"Procure pelo número da pré-venda, nome do cliente, código ou descrição do produto."},
-    {sel:".nae", pane:"pvs", t:"Também dá ao contrário", d:"Toque numa encomenda primeiro: os itens da nota mais parecidos sobem para o topo e cada um ganha o botão <b>Amarrar aqui</b>."},
-    {sel:"#naNewPv", pane:"pvs", t:"Pré-venda que não está no sistema", d:"Se a pré-venda ainda não foi cadastrada, use <b>+ Cadastrar pré-venda</b>: envie o PDF ou digite número, cliente e itens."},
-    {sel:"#naSave", t:"3. Salve a nota", d:"Quando terminar, toque em <b>Salvar nota</b>. O que não foi amarrado vai para o estoque. Dá para voltar depois pela aba <b>Notas fiscais</b>."}
+    {sel:".nahead", t:"Dados da nota", d:"Confira o fornecedor, o número da NF e quantas caixas vieram. A barra mostra quantas peças já estão amarradas e quantas vão para o estoque."},
+    {sel:".nafil", pane:"itens", t:"Filtros", d:"<b>Para estoque</b>: itens que ainda têm peça sobrando (o número é o que vai para o estoque). <b>Amarrados</b>: itens que já têm pré-venda."},
+    {sel:".nbrow", pane:"itens", t:"1. Toque no item da nota", d:"O item abre ao lado, com as pré-vendas já amarradas a ele e as <b>sugestões</b>: mesmo produto, mesmo pedido ao fornecedor ou descrição parecida, das mais antigas para as mais novas."},
+    {sel:".nbsec:last-child", pane:"pvs", t:"2. Amarre a pré-venda", d:"Toque em <b>Amarrar</b> na sugestão (a quantidade já vem com o que falta) ou arraste o card para <b>Amarradas a este item</b>. Errou? Toque em <b>Desfazer</b> no aviso de baixo."},
+    {sel:"#naQR", pane:"pvs", t:"Puxar outra pré-venda", d:"Se a pré-venda não aparece nas sugestões, procure aqui pelo número, cliente, código ou descrição. Se ela ainda não está no sistema, use <b>+ Cadastrar pré-venda</b>."},
+    {sel:".nbsec:first-child", pane:"pvs", t:"3. Confira as quantidades", d:"Ajuste com − e + ou toque em <b>Tirar</b>. Embaixo de cada pré-venda aparecem os outros itens dela e onde estão (nesta nota, em outra nota ou aguardando). Toque no número da pré-venda para ver todos os itens."},
+    {sel:"#naDraft", t:"Salvar e continuar depois", d:"Guarda o que você fez sem liberar nada. Dá para continuar depois pela aba <b>Notas fiscais</b>."},
+    {sel:"#naSave", t:"4. Salvar e liberar", d:"Mostra o resumo e libera: as pré-vendas amarradas entram na fila da separação quando o Recebimento conferir a nota (ou na hora, se ela já foi conferida). O que não foi amarrado vai para o estoque."}
   ];
   let k=0;
   const ov=document.createElement("div"); ov.className="tour"; ov.innerHTML=`<div class="tourhole"></div><div class="tourtip" role="dialog" aria-modal="true" aria-live="polite"></div>`;
@@ -3369,128 +3435,246 @@ function nfTour(){
   ov.addEventListener("click",e=>{ if(e.target===ov) close(); });
   show();
 }
+/* ---- Amarrar nota fiscal (layout novo): lista dos itens da nota à esquerda; o item escolhido abre ao lado com as
+   pré-vendas amarradas e as sugestões. A amarração é sempre do ITEM da pré-venda (uma pré-venda pode ter encomenda de vários fornecedores). ---- */
+const NB_COLORS=["#2A5BC8","#1D845A","#B5477A","#7A5CC2","#C2701F","#11808C","#8A6D12","#B23A3A","#3F7F2A","#5A62C8"];
+const nbColor = o => { const s=String(o?.num||o?.id||""); let h=0; for(const ch of s) h=(h*31+ch.charCodeAt(0))>>>0; return NB_COLORS[h%NB_COLORS.length]; };
+const nbWcache={};
+function nbAnimate(before){
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches) before={};
+  document.querySelectorAll("#app [data-fk]").forEach(e=>{ const b=before[e.dataset.fk]; if(!b){ if(before.__any) e.classList.add("nbnew"); return; }
+    const a=e.getBoundingClientRect(), dx=b.left-a.left, dy=b.top-a.top; if(Math.abs(dx)<1 && Math.abs(dy)<1) return;
+    e.animate([{transform:`translate(${dx}px,${dy}px)`},{transform:"none"}],{duration:360,easing:"cubic-bezier(.2,.8,.2,1)"}); });
+  document.querySelectorAll("#app [data-nbw]").forEach(e=>{ const k=e.dataset.nbk, t=e.dataset.nbw; e.style.width=nbWcache[k]??t; e.offsetWidth; e.style.width=t; nbWcache[k]=t; });
+  document.querySelectorAll("#app [data-nbo]").forEach(e=>{ const k=e.dataset.nbk, t=e.dataset.nbo; e.style.strokeDashoffset=nbWcache[k]??t; e.getBoundingClientRect(); e.style.strokeDashoffset=t; nbWcache[k]=t; });
+}
+function nbRects(){ const m={__any:true}; document.querySelectorAll("#app [data-fk]").forEach(e=>m[e.dataset.fk]=e.getBoundingClientRect()); return m; }
+let nbUndoT;
+function nbUndoToast(msg, canUndo){
+  let t=document.getElementById("nbUndo"); if(!t){ t=document.createElement("div"); t.id="nbUndo"; t.className="nbtoast"; t.setAttribute("role","status"); document.body.appendChild(t); }
+  t.innerHTML=`<span>${esc(msg)}</span>${canUndo?`<button type="button" id="nbUndoBtn">Desfazer</button>`:""}`; t.hidden=false; t.classList.remove("nbin"); t.offsetWidth; t.classList.add("nbin");
+  const b=t.querySelector("#nbUndoBtn"); if(b) b.onclick=()=>window._nbUndo && window._nbUndo();
+  clearTimeout(nbUndoT); nbUndoT=setTimeout(()=>{ t.hidden=true; },5000);
+}
 function renderNfEdit(){
-  const E=state.nfEdit, N=E.N, selfId=E.id || nfId(N);
+  const E=state.nfEdit, N=E.N, selfId=E.id || nfId(N), ex=NFS[selfId];
+  if(!["estq","amar"].includes(E.fL)) E.fL="estq";
+  E.undo ||= [];
   const used = l => (l.alloc||[]).reduce((t,a)=>t+(+a.qty||0),0);
+  const free = l => l.qty-used(l);
   // peças de encomenda de cada item de pré-venda que ainda não têm nota (tirando o que esta mesma nota já amarrou)
   const otherNf = it => (it.compra?.nf||[]).filter(n=>n.id!==selfId).reduce((t,n)=>t+(+n.qty||0),0);
   const draftUsed = (oid,i) => N.lines.reduce((t,l)=>t+(l.alloc||[]).filter(a=>a.oid===oid && a.i===i).reduce((u,a)=>u+(+a.qty||0),0),0);
   const encAll = ORDERS.filter(o=>hasEnc(o) && !["enviado","excluido"].includes(o.status)).flatMap(o=>encItems(o).map(x=>({o, x, key:o.id+":"+x.i})));
   const encLeft = c => Math.max(0, c.x.qtyEnc - otherNf(c.o.items[c.x.i]||{}) - draftUsed(c.o.id, c.x.i));
-  const cands = l => { const byPed=nfCandidates(l, N.forn).map(c=>c.o.id+":"+c.i);
-    return encAll.map(c=>({c, sc: (byPed.includes(c.key)?100:0) + (l.sku && l.sku===c.x.code ? 50 : 0) + rcSim(l.name, c.x.name)})).filter(x=>x.sc>=100 || x.sc>=50 || x.sc>=3).sort((a,b)=>b.sc-a.sc); };
-  const sugCount = N.lines.map(l=>used(l) ? 0 : cands(l).filter(x=>encLeft(x.c)>0 && (x.sc>=50)).length);
-  const nAm=N.lines.filter(l=>used(l)).length, nSug=sugCount.filter(Boolean).length, links=N.lines.reduce((t,l)=>t+(l.alloc||[]).length,0);
-  const selL = E.sel!=null ? N.lines[E.sel] : null, selE = !selL && E.enc ? encAll.find(c=>c.key===E.enc) : null;
-  const pvTxt = c => `<b class="mono">#${esc(c.o.num)}</b> ${esc(c.o.client)}`;
-  const itTxt = c => `<span class="naeit"><span class="k">SKU</span><span class="k">Produto</span><span class="mono">${esc(c.x.code)}</span><span>${esc(c.x.name)}</span></span>`;
-  const pvTxt2 = c => `<b class="mono">#${esc(c.o.num)}</b> <b>${esc(c.o.client)}</b>`;
+  const leftOf = (o,i) => { const x=encItems(o).find(y=>y.i===i); return x ? encLeft({o,x}) : 0; };
+  const dias = o => Math.max(0, Math.floor((Date.now()-(o.createdAt||Date.now()))/864e5));
+  const diasTxt = o => { const d=dias(o); return d===0?"hoje":d===1?"há 1 dia":`há ${d} dias`; };
+  // sugestões: mesmo pedido ao fornecedor (100), mesmo produto (50), descrição parecida (rcSim ≥ 3); as mais antigas primeiro
+  const cands = l => { const byPed=new Set(nfCandidates(l, N.forn).map(c=>c.o.id+":"+c.i));
+    return encAll.map(c=>{ const ped=byPed.has(c.key), sku=!!(l.sku && l.sku===c.x.code), sim=rcSim(l.name, c.x.name);
+      const tier = ped||sku ? 2 : sim>=3 ? 1 : 0;
+      return {c, tier, tags:[...(sku?[["Mesmo produto",""]]:[]), ...(ped?[["Mesmo pedido ao fornecedor","g"]]:[]), ...(!ped&&!sku?[["Descrição parecida","w"]]:[])]}; })
+      .filter(x=>x.tier>0).sort((a,b)=>b.tier-a.tier || (a.c.o.createdAt||0)-(b.c.o.createdAt||0)); };
+  const sugOf = l => { const has=new Set((l.alloc||[]).map(a=>a.oid+":"+a.i)); return cands(l).filter(x=>!has.has(x.c.key) && encLeft(x.c)>0); };
+  const exactWant = l => sugOf(l).filter(x=>x.tier===2).reduce((t,x)=>t+encLeft(x.c),0);
+  const lineFor = it => N.lines.findIndex(l=>l.sku && l.sku===it.code && free(l)>0);
+  const lineCode = l => l.sku || l.code;
+  const destChip = o => `<button type="button" class="nbdest ${destTxt(o)?"":"need"}" data-nadest="${esc(o.id)}" title="Para onde vai quando a encomenda chegar">${destTxt(o) || "Destino? definir"}</button>`;
+  const tot=N.lines.reduce((t,l)=>t+l.qty,0), am=N.lines.reduce((t,l)=>t+Math.min(l.qty,used(l)),0);
+  const pvSet=new Set(N.lines.flatMap(l=>(l.alloc||[]).map(a=>a.oid)));
+  const mob=matchMedia("(max-width:900px)").matches;
+  const selL = E.sel!=null ? N.lines[E.sel] : null;
+  if(!selL) E.pane="itens";
 
-  /* ----- coluna esquerda: itens da nota ----- */
-  const leftRows = () => { const q=E.qL.trim().toUpperCase();
-    let rows=N.lines.map((l,j)=>({l,j, sc: selE ? (l.sku && l.sku===selE.x.code ? 50 : 0) + rcSim(l.name, selE.x.name) : 0}));
-    if(q) rows=rows.filter(r=>fz(r.l.code+" "+r.l.name+" "+(r.l.sku||""), q));
-    if(E.fL==="amar") rows=rows.filter(r=>used(r.l)); else if(E.fL==="estq") rows=rows.filter(r=>!used(r.l)); else if(E.fL==="sug") rows=rows.filter(r=>sugCount[r.j]);
-    if(selE) rows.sort((a,b)=>b.sc-a.sc);
-    const pg=pageOf(rows, "naL", 20);
-    return rows.length ? pg.top + pg.items.map(({l,j,sc})=>{ const u=used(l), over=u>l.qty;
-      return `<div class="nai ${E.sel===j?"sel":""} ${u?"on":""}" data-nal="${j}" role="button" tabindex="0">
-        <div class="nait"><span><b class="mono">${esc(l.code)}</b> ${esc(l.name)}</span><b class="tnum naq">${l.qty} ${esc(l.un||"pç")}</b></div>
-        <div class="naic">${(l.alloc||[]).map(a=>{ const o=ORDERS.find(x=>x.id===a.oid); return `<span class="chip enc">→ #${esc(o?.num||"?")} · ${a.qty} pç</span>`; }).join("")}
-          ${over?`<span class="chip bad">${u-l.qty} pç a mais que a nota</span>`: u ? (u<l.qty?`<span class="chip">${l.qty-u} pç estoque</span>`:"") : sugCount[j] ? `<span class="chip sug">${sugCount[j]} sugest${sugCount[j]===1?"ão":"ões"}</span>` : `<span class="chip">estoque</span>`}
-          ${selE ? `<button class="mini nabtn ${sc>=3?"on":""}" data-nabind="${j}">Amarrar aqui</button>` : ""}</div></div>`; }).join("") + pg.pager
-      : `<div class="empty">Nenhum item da nota com esse filtro.</div>`; };
+  /* ----- lista dos itens da nota ----- */
+  const ring = l => { const u=Math.min(used(l),l.qty), C=119.4, j=N.lines.indexOf(l); return `<div class="nbring ${u===l.qty?"full":""} ${used(l)>l.qty?"over":""}"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="bg" cx="22" cy="22" r="19"/><circle class="fg" cx="22" cy="22" r="19" stroke-dasharray="${C}" data-nbk="r${j}" data-nbo="${(C*(1-u/l.qty)).toFixed(1)}" style="stroke-dashoffset:${(C*(1-u/l.qty)).toFixed(1)}"/></svg><span class="tnum">${used(l)}/${l.qty}</span></div>`; };
+  const status = l => { const u=used(l), fr=free(l), s=sugOf(l), ex2=s.filter(x=>x.tier===2).length;
+    if(u>l.qty) return `<span class="nbpill bad">${u-l.qty} pç a mais que a nota</span>`;
+    if(E.fL==="estq" && u>0 && u<=l.qty) return `<span class="nbsm">vão para o estoque</span>`;
+    if(fr===0) return `<span class="nbpill ok">Tudo amarrado</span>`;
+    if(ex2) return `<span class="nbpill sug">${ex2} sugest${ex2>1?"ões":"ão"}</span>`;
+    if(s.length) return `<span class="nbpill sug">${s.length} parecida${s.length>1?"s":""}</span>`;
+    return u ? `<span class="nbpill stk">${fr} pç p/ estoque</span>` : `<span class="nbpill stk">Estoque</span>`; };
+  const q=E.qL.trim();
+  const rows = N.lines.map((l,j)=>({l,j})).filter(({l})=>(!q || fz(l.code+" "+l.name+" "+(l.sku||""), q)) && (E.fL==="amar" ? used(l)>0 : free(l)>0));
+  const pgL = pageOf(rows, "naL", 15);
+  const cnt = {estq:N.lines.filter(l=>free(l)>0).length, amar:N.lines.filter(l=>used(l)>0).length};
+  const listHtml = rows.length ? pgL.top + pgL.items.map(({l,j})=>{ const a=l.alloc||[], contest=free(l)>0 && exactWant(l)>free(l);
+    return `<button type="button" class="nbrow ${E.sel===j?"on":""}" data-nal="${j}" data-fk="L${j}" aria-pressed="${E.sel===j}">
+      ${ring(l)}
+      <span class="nbrt"><span class="d">${esc(l.name)}</span><span class="m"><span class="mono">${esc(lineCode(l))}</span>${l.sku&&l.sku!==l.code?`<span>forn. ${esc(l.code)}</span>`:""}${l.ped?`<span>${esc(l.ped)}</span>`:""}
+        ${a.length?`<span class="nbdots">${a.map(x=>{ const o=ORDERS.find(y=>y.id===x.oid); return `<i style="background:${nbColor(o)}" title="#${esc(o?.num||"?")}"></i>`; }).join("")}</span><span>${a.map(x=>"#"+esc(ORDERS.find(y=>y.id===x.oid)?.num||"?")).join(", ")}</span>`:""}
+        ${contest?`<span class="nbpill war">pedem mais que a nota</span>`:""}</span></span>
+      <span class="nbst">${E.fL==="estq"&&used(l)>0&&used(l)<=l.qty?`<span class="nbq tnum">${free(l)} <small>de ${l.qty} ${esc(l.un||"pç")}</small></span>`:`<span class="nbq tnum">${l.qty} <small>${esc(l.un||"pç")}</small></span>`}${status(l)}</span>
+      <svg class="nbchev" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>`; }).join("") + pgL.pager
+    : `<div class="empty">${q ? "Nenhum item da nota com essa busca." : E.fL==="estq" ? "Todas as peças da nota estão amarradas. Nada vai para o estoque." : "Nenhum item amarrado ainda."}</div>`;
 
-  /* ----- coluna direita: pré-vendas com encomenda ----- */
-  const encRow = (c, why) => { const left=encLeft(c), mine=draftUsed(c.o.id,c.x.i);
-    return `<div class="nae ${E.enc===c.key?"sel":""} ${left<=0?"full":""}" data-nae="${c.key}" role="button" tabindex="0">
-      <div class="naet"><span>${pvTxt2(c)}</span>${why?`<span class="chip sug">${why}</span>`:""}</div>
-      <div class="naei">${itTxt(c)}</div>
-      <div class="naic"><button type="button" class="chip dest ${destTxt(c.o)?"":"need"}" data-nadest="${c.o.id}" title="Para onde vai quando a encomenda chegar">${destTxt(c.o) || "Destino? definir"}</button><span class="chip">encomenda ${c.x.qtyEnc} pç</span>${mine?`<span class="chip enc">${mine} pç nesta nota</span>`:""}${left>0?`<span class="chip need">faltam ${left} pç</span>`:`<span class="chip done">completa</span>`}
-        ${selL ? `<button class="mini nabtn on" data-naadd="${c.key}">Amarrar${left>0?` · ${Math.min(left, Math.max(0,selL.qty-used(selL))) || ""}`:""}</button>` : ""}</div></div>`; };
-  const rightBody = () => { const q=E.qR.trim().toUpperCase();
-    const match = c => !q || fz(c.o.num+" "+c.o.client+" "+c.x.code+" "+c.x.name, q);
-    if(selL){ const u=used(selL), has=new Set((selL.alloc||[]).map(a=>a.oid+":"+a.i)), cs=cands(selL).filter(x=>!has.has(x.c.key)), sugKeys=new Set(cs.map(x=>x.c.key));
-      const others=encAll.filter(c=>!has.has(c.key) && !sugKeys.has(c.key) && match(c)).sort((a,b)=>(encLeft(b)>0)-(encLeft(a)>0) || (a.o.createdAt||0)-(b.o.createdAt||0));
-      const sug=cs.filter(x=>match(x.c));
-      return `<div class="nasel"><div class="eyebrow">Item da nota selecionado</div><div class="nait"><span><b class="mono">${esc(selL.code)}</b> ${esc(selL.name)}</span><b class="tnum naq">${selL.qty} ${esc(selL.un||"pç")}</b></div>
-          <div class="nabar"><i style="width:${Math.min(100,Math.round(u*100/Math.max(1,selL.qty)))}%" class="${u>selL.qty?"over":""}"></i></div>
-          <small class="${u>selL.qty?"bad-s":"muted-s"}">${u>selL.qty ? `Amarrado ${u} pç: ${u-selL.qty} a mais do que veio na nota. Diminua alguma quantidade.` : u ? `${u} pç para pré-vendas · ${selL.qty-u} pç para estoque` : "Nada amarrado: tudo vai para o estoque."}</small>
-          ${(selL.alloc||[]).length?`<div class="naal">${selL.alloc.map((a,m)=>{ const o=ORDERS.find(x=>x.id===a.oid), it=o?.items[a.i]; return `<div class="naalr"><span><b class="mono">#${esc(o?.num||"?")}</b> ${esc(o?.client||"")}<small>${esc(it?.code||"")} ${esc(it?.name||"")} · encomenda ${(it?.qtyEnc||0)-(it?.qtyDec||0)} pç</small></span>
-            <span class="naqty"><button class="mini" data-naq="${m}" data-d="-1" aria-label="Menos uma peça">−</button><input class="tinput r" type="number" min="1" data-naqi="${m}" value="${a.qty}" aria-label="Peças para a pré-venda ${esc(o?.num||"")}"><button class="mini" data-naq="${m}" data-d="1" aria-label="Mais uma peça">+</button><button class="lnk" data-narm="${m}">tirar</button></span></div>`; }).join("")}</div>`:""}
-          <button class="lnk" id="naDesel">Fechar este item</button></div>
-        ${sug.length?`<div class="eyebrow nah">Sugestões para este item</div>${sug.map(x=>encRow(x.c, x.sc>=100?"mesmo pedido ao fornecedor":x.sc>=50?"mesmo produto":"descrição parecida")).join("")}`:""}
-        <div class="eyebrow nah">${sug.length?"Outras encomendas em aberto":"Encomendas em aberto"} · ${others.length}</div>
-        ${(()=>{ const pg=pageOf(others,"naR",20); return others.length ? pg.top + pg.items.map(c=>encRow(c)).join("") + pg.pager : `<div class="empty">${q?"Nenhuma encomenda com essa busca.":"Não há outras encomendas em aberto."}</div>`; })()}`; }
-    const list=encAll.filter(match).sort((a,b)=>(encLeft(b)>0)-(encLeft(a)>0) || (a.o.createdAt||0)-(b.o.createdAt||0));
-    return `${selE?`<div class="nasel"><div class="eyebrow">Encomenda selecionada</div><div>${pvTxt2(selE)}</div><div class="naei">${itTxt(selE)}</div><small class="muted-s">Encomenda de ${selE.x.qtyEnc} pç · faltam ${encLeft(selE)}. Agora toque em <b>Amarrar aqui</b> no item da nota (os mais parecidos estão em cima).</small><button class="lnk" id="naDesel">Cancelar</button></div>`
-      : ""}
-      <div class="eyebrow nah">Encomendas em aberto · ${list.length}</div>
-      ${(()=>{ const pg=pageOf(list,"naR",20); return list.length ? pg.top + pg.items.map(c=>encRow(c)).join("") + pg.pager : `<div class="empty">${q?"Nenhuma encomenda com essa busca. Se a pré-venda ainda não está no sistema, use <b>Cadastrar pré-venda</b>.":"Nenhuma pré-venda com encomenda em aberto. Use <b>Cadastrar pré-venda</b>."}</div>`; })()}`; };
+  /* ----- painel do item escolhido ----- */
+  const others = (o, i) => { const its=encItems(o).filter(x=>x.i!==i); if(!its.length) return "";
+    return `<div class="nbothers"><span class="muted-s">Outros itens da #${esc(o.num)}:</span>${its.map(x=>{ const lf=leftOf(o,x.i), mine=draftUsed(o.id,x.i), j=lineFor(x);
+      if(lf===0) return `<span class="nboc okd" title="${esc(x.name)}">✓ ${esc(x.code)} ${mine?"nesta nota":(x.compra?.nf||[]).filter(n=>n.id!==selfId).map(n=>"NF "+esc(n.num)).join(", ")||"com nota"}</span>`;
+      if(j>=0) return `<button type="button" class="nboc here" data-najump="${j}" title="${esc(x.name)} · veio nesta nota">${esc(x.code)} · nesta nota →</button>`;
+      const st=compraSt(o.items[x.i]||{}); return `<span class="nboc" title="${esc(x.name)}">◷ ${esc(x.code)} · ${st==="faturado"||st==="fatparc"?"em outra nota":"aguardando nota"}</span>`; }).join("")}</div>`; };
+  const panel = () => { if(!selL) return `<div class="nbempty"><svg viewBox="0 0 120 70" fill="none" aria-hidden="true"><rect x="4" y="22" width="112" height="26" rx="8" stroke="currentColor" stroke-width="2" stroke-dasharray="5 5"/><rect x="4" y="22" width="44" height="26" rx="8" fill="var(--route)" opacity=".85"/><rect x="50" y="22" width="26" height="26" rx="6" fill="var(--ok)" opacity=".85"/></svg><b>Escolha um item da nota</b><span>Ele abre aqui com as pré-vendas que esperam esse produto.</span></div>`;
+    const l=selL, a=l.alloc||[], fr=free(l), want=exactWant(l), qR=E.qR.trim();
+    const list = qR ? encAll.filter(c=>!a.some(x=>x.oid===c.o.id&&x.i===c.x.i) && encLeft(c)>0 && fz(c.o.num+" "+c.o.client+" "+c.x.code+" "+c.x.name, qR)).sort((x,y)=>(x.o.createdAt||0)-(y.o.createdAt||0)).map(c=>({c, tier:0, tags:c.x.code===l.sku?[["Mesmo produto",""]]:[["Produto diferente","w"]]})) : sugOf(l);
+    const pgR = pageOf(list, "naR", 15);
+    const card = (x, n) => { const c=x.c, lf=encLeft(c), qq=Math.min(lf, fr); return `<div class="nbcard sg" draggable="true" data-nadrag="${esc(c.key)}" data-fk="C${esc(c.key)}" style="--c:${nbColor(c.o)}">
+      <div class="l1"><button type="button" class="nbpv" data-nasheet="${esc(c.o.id)}"><i></i><u>#${esc(c.o.num)}</u></button><span class="cli">${esc(c.o.client||"")}</span>${destChip(c.o)}</div>
+      <div class="it"><b class="mono">${esc(c.x.code)}</b> · ${esc(c.x.name)}<br>Encomenda ${c.x.qtyEnc} pç · ${diasTxt(c.o)}</div>
+      ${x.tags.length?`<div class="nbtags">${x.tags.map(([t,k])=>`<span class="nbtag ${k}">${t}</span>`).join("")}</div>`:""}
+      <div class="l2"><span class="left">falta <b class="tnum">${lf}</b> pç</span><button type="button" class="nbgo" data-naadd="${esc(c.key)}" ${qq?"":"disabled"}>${qq?`Amarrar ${qq}`:"Nota sem saldo"}${qq&&n<9&&!mob?` <kbd>${n+1}</kbd>`:""}</button></div></div>`; };
+    return `<div class="nbph"><span class="mono muted-s">${esc(lineCode(l))}${l.sku&&l.sku!==l.code?` · forn. ${esc(l.code)}`:""} · ${l.qty} ${esc(l.un||"pç")}${l.ped?" · "+esc(l.ped):""}</span><h2>${esc(l.name)}</h2>
+        ${mob?`<button type="button" class="lnk" data-napane="itens">‹ Itens da nota</button>`:""}</div>
+      ${used(l)>l.qty?`<div class="nbwarn bad">Amarrado ${used(l)} pç: ${used(l)-l.qty} a mais do que veio na nota. Diminua alguma quantidade.</div>`:""}
+      ${want>fr&&fr>0?`<div class="nbwarn">⚠ As encomendas deste produto pedem <b>${want} pç</b> e sobraram <b>${fr}</b> na nota. As sugestões estão das mais antigas para as mais novas: decida quem recebe agora.</div>`:""}
+      <div class="nbcols">
+        <section class="nbsec"><h3>Amarradas a este item</h3><div class="nbsub">${used(l)} de ${l.qty} pç · ${fr>0?`<b>${fr}</b> vão para o estoque`:`<b class="okc">✓ nada para o estoque</b>`}</div>
+          <div class="nbzone" data-nadrop="${E.sel}">${a.length ? a.map((x,m)=>{ const o=ORDERS.find(y=>y.id===x.oid), it=o?.items[x.i]||{}, xi=o?encItems(o).find(y=>y.i===x.i):null, lf=o?leftOf(o,x.i):0;
+            return `<div class="nbcard am" style="--c:${nbColor(o)}" data-fk="C${esc(x.oid)}:${x.i}">
+              <div class="l1"><button type="button" class="nbpv" data-nasheet="${esc(x.oid)}"><i></i><u>#${esc(o?.num||"?")}</u></button><span class="cli">${esc(o?.client||"")}</span>${o?destChip(o):""}</div>
+              <div class="it"><b class="mono">${esc(it.code||"")}</b> · ${esc(it.name||"")}<br>Encomenda ${xi?xi.qtyEnc:(it.qtyEnc||0)} pç${lf?` · <span class="warnc">ainda faltam ${lf}</span>`:""}${it.code&&l.sku&&it.code!==l.sku?` <span class="nbtag w">produto diferente</span>`:""}</div>
+              <div class="l2"><span class="nbstep"><button type="button" data-naq="${m}" data-d="-1" aria-label="Menos uma peça">−</button><input inputmode="numeric" data-naqi="${m}" value="${x.qty}" aria-label="Peças para a pré-venda ${esc(o?.num||"")}"><button type="button" data-naq="${m}" data-d="1" aria-label="Mais uma peça">+</button></span><button type="button" class="nbx" data-narm="${m}">Tirar</button></div>
+              ${o?others(o,x.i):""}</div>`; }).join("") : `<div class="nbph0">Nenhuma pré-venda ainda. Toque em <b>Amarrar</b> numa sugestão ou arraste ela para cá.</div>`}</div></section>
+        <section class="nbsec"><h3>${qR?"Resultado da busca":"Sugestões"} <span>${list.length?`${list.length} encomenda${list.length>1?"s":""}${qR?"":" esperando"}`:""}</span></h3>
+          <div class="nbpull"><input class="tinput" id="naQR" placeholder="Puxar outra pré-venda: nº, cliente ou código" value="${esc(E.qR)}" autocomplete="off"><button type="button" class="mini" id="naNewPv">+ Cadastrar pré-venda</button></div>
+          <div class="nbzone">${list.length ? pgR.top + pgR.items.map(card).join("") + pgR.pager : `<div class="nbph0">${qR?"Nenhuma encomenda em aberto com essa busca. Se a pré-venda ainda não está no sistema, use <b>+ Cadastrar pré-venda</b>.":`Nenhuma encomenda parecida em aberto.${fr?" O que sobrar vai para o estoque.":""}`}</div>`}</div></section>
+      </div>`; };
 
-  const ex = NFS[selfId];
+  /* ----- folha da pré-venda (todos os itens, por fornecedor) ----- */
+  const sheet = () => { const o=E.sheet && ORDERS.find(x=>x.id===E.sheet); if(!o) return "";
+    const enc=encItems(o), done=enc.filter(x=>leftOf(o,x.i)===0).length, groups={};
+    (o.items||[]).forEach((it,i)=>{ const x=enc.find(y=>y.i===i); const f = !x ? "Da loja · sem encomenda" : ((it.compra?.links||[]).map(k=>PURCHASES[k.pid]?.forn).find(Boolean) || "Sem pedido ao fornecedor"); (groups[f] ||= []).push({it,i,x}); });
+    const canAll = enc.some(x=>leftOf(o,x.i)>0 && lineFor(x)>=0);
+    return `<div class="nbscrim" data-nashut></div><aside class="nbsheet" role="dialog" aria-modal="true" aria-label="Pré-venda ${esc(o.num)}" style="--c:${nbColor(o)}">
+      <header><div class="r"><div><h2><i></i>Pré-venda #${esc(o.num)}</h2><div class="muted-s">${esc(o.client||"")}${o.seller?` · vendedor(a) ${esc(o.seller)}`:""} · ${diasTxt(o)}</div></div><button type="button" class="nbclose" data-nashut aria-label="Fechar">×</button></div>
+        <div class="nbpg"><i data-nbk="sh${esc(o.id)}" data-nbw="${enc.length?Math.round(done*100/enc.length):100}%" style="width:${enc.length?Math.round(done*100/enc.length):100}%"></i></div>
+        <div class="muted-s"><b>${done} de ${enc.length}</b> itens de encomenda com nota · ${destChip(o)}</div>
+        ${canAll?`<button type="button" class="nbgo wide" data-naall="${esc(o.id)}">Amarrar tudo desta pré-venda que veio nesta nota</button>`:""}</header>
+      <div class="nbsbody">${Object.entries(groups).map(([f,its])=>`<div class="nbgrp"><h4>${esc(f)}</h4>${its.map(({it,i,x})=>{
+        if(!x) return `<div class="nbsi"><span class="ic stk">·</span><span class="t"><b class="mono">${esc(it.code)}</b> · ${it.qty} pç<small>${esc(it.name)}</small></span><span class="muted-s">estoque</span></div>`;
+        const lf=leftOf(o,i), mine=draftUsed(o.id,i), j=lineFor(x), oth=(it.compra?.nf||[]).filter(n=>n.id!==selfId);
+        let ic, txt, act="";
+        if(lf===0 && mine){ ic=`<span class="ic ok">✓</span>`; txt=`Nesta nota · ${mine} pç`; }
+        else if(lf===0){ ic=`<span class="ic ok">✓</span>`; txt=oth.map(n=>`NF ${esc(n.num)} · ${n.qty} pç`).join(" · ")||"Com nota"; }
+        else if(j>=0){ ic=`<span class="ic here">→</span>`; txt=`Veio nesta nota · faltam ${lf} pç${mine?` (${mine} já amarradas)`:""}`; act=`<button type="button" class="nbgo" data-naaddl="${j}|${esc(o.id)}:${i}">Amarrar ${Math.min(lf, free(N.lines[j]))}</button>`; }
+        else if(mine){ ic=`<span class="ic here">½</span>`; txt=`${mine} pç nesta nota · faltam ${lf} pç`; }
+        else { const st=compraSt(it); ic=`<span class="ic wait">◷</span>`; txt = oth.length ? `${oth.map(n=>"NF "+esc(n.num)).join(", ")} · faltam ${lf} pç` : st==="pedido"||st==="parcial" ? "Encomendado · aguardando nota" : "Aguardando nota do fornecedor"; }
+        return `<div class="nbsi">${ic}<span class="t"><b class="mono">${esc(it.code)}</b> · encomenda ${x.qtyEnc} pç<small>${esc(it.name)}</small><small>${txt}</small></span>${act}</div>`; }).join("")}</div>`).join("")}</div></aside>`; };
+
   app.innerHTML = topnav() + `
-    <header class="bar nahdr"><div class="grow"><h1>Amarrar nota fiscal</h1><div class="sub">Relacione os itens da nota com as pré-vendas que estão esperando encomenda. O que não for amarrado vai para o estoque.</div></div>
-      <div class="cpbtns"><button class="btn ghost cpbtn" id="naTour">Tutorial</button><button class="btn ghost cpbtn" id="naBack">Voltar</button><button class="btn primary cpbtn" id="naSave">Salvar nota</button></div></header>
+    <header class="bar nahdr nbhdr"><div class="grow"><h1>Amarrar nota fiscal</h1><div class="sub">Escolha um item da nota e amarre às pré-vendas que esperam esse produto. O que não for amarrado vai para o estoque.</div></div>
+      <div class="cpbtns"><button class="btn ghost cpbtn" id="naTour">Tutorial</button><button class="btn ghost cpbtn" id="naBack">Voltar</button><button class="btn ghost cpbtn" id="naDraft">Salvar e continuar depois</button><button class="btn primary cpbtn" id="naSave">Salvar e liberar para a separação</button></div></header>
     <section class="card nahead">
       <div class="hnf nff"><label><span>Fornecedor</span><input class="tinput" id="nfForn" value="${esc(N.forn)}"></label><label><span>Nº da NF</span><input class="tinput" id="nfNum" value="${esc(N.num)}"></label><label><span>Volumes (caixas)</span><input class="tinput" id="nfVols" type="number" min="0" value="${N.vols||""}"></label></div>
-      <small class="muted-s">${N.cnpj?"CNPJ "+fmtCnpj(N.cnpj)+" · ":""}${N.emissao?"emitida em "+fmtDate(N.emissao)+" · ":""}${N.chave?"chave lida":"sem chave de acesso: o recebimento será pelo nº da NF"}</small>
-      ${ex?.received?`<div class="nawarn ok">Esta nota <b>já foi recebida</b> em ${new Date(ex.received.at).toLocaleDateString("pt-BR")}${ex.received.div?" (com divergência)":""}. Você pode amarrar agora: ao salvar, as pré-vendas amarradas já contam como encomenda chegada${(ex.received.lines||[]).some(x=>x.qty!==x.exp)?", pela quantidade que foi conferida":""}.</div>`:""}
-      <div class="nastats"><span><b>${N.lines.length}</b> itens na nota</span><span class="s-on"><b>${nAm}</b> amarrado${nAm===1?"":"s"} · ${links} pré-venda${links===1?"":"s"}</span><span><b>${N.lines.length-nAm}</b> para estoque</span>${nSug?`<span class="s-sug"><b>${nSug}</b> com sugestão para conferir</span>`:""}</div>
+      <small class="muted-s">${N.cnpj?"CNPJ "+fmtCnpj(N.cnpj)+" · ":""}${N.emissao?"emitida em "+fmtDate(N.emissao)+" · ":""}${N.chave?"chave lida":"sem chave de acesso: o recebimento será pelo nº da NF"}${ex?.draft?` · <b>rascunho salvo em ${new Date(ex.draft.at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</b>`:""}</small>
+      <div class="nbmeter"><div class="nbbar"><i data-nbk="meter" data-nbw="${tot?Math.round(am*1000/tot)/10:0}%" style="width:${tot?Math.round(am*1000/tot)/10:0}%"></i></div><div class="lg"><span><b class="tnum">${am}</b> pç amarradas · ${pvSet.size} pré-venda${pvSet.size===1?"":"s"}</span><span><b class="tnum">${tot-am}</b> pç para o estoque</span></div></div>
+      ${ex?.received?`<div class="nawarn ok">Esta nota <b>já foi recebida</b> em ${new Date(ex.received.at).toLocaleDateString("pt-BR")}${ex.received.div?" (com divergência)":""}. Ao liberar, as pré-vendas amarradas já contam como encomenda chegada${(ex.received.lines||[]).some(r=>r.qty!==r.exp)?"; vale a quantidade conferida (o que sobrar vai para o estoque)":""}.</div>`:""}
       ${E.fresh && ex?.lines?.length ? `<div class="nawarn">Esta nota já tinha sido importada: a amarração anterior foi mantida. Salvar substitui a que estava gravada.</div>`:""}
       ${E.auto ? `<div class="nawarn ok">O sistema já amarrou <b>${E.auto}</b> item(ns) pelos pedidos ao fornecedor. Confira no filtro <b>Amarrados</b>.</div>`:""}
       ${E.err?`<div class="merr">${esc(E.err)}</div>`:""}
     </section>
-    <div class="seg napanes">${[["itens",`Itens da nota · ${N.lines.length}`],["pvs","Pré-vendas (encomendas)"]].map(([k,t])=>`<button data-napane="${k}" aria-pressed="${E.pane===k}">${t}</button>`).join("")}</div>
-    <div class="nagrid" data-pane="${E.pane}">
-      <section class="card nacol nacl"><div class="nach"><span class="natag nf">Nota fiscal</span><h2>Itens da nota</h2>
-          <input class="tinput" id="naQL" placeholder="Buscar item da nota: código ou descrição" value="${esc(E.qL)}" autocomplete="off">
-          <div class="seg nafil">${[["todos","Todos"],["sug",`Com sugestão${nSug?` · ${nSug}`:""}`],["amar",`Amarrados · ${nAm}`],["estq","Estoque"]].map(([k,t])=>`<button data-nafil="${k}" aria-pressed="${E.fL===k}">${t}</button>`).join("")}</div>
-          ${selE?`<div class="nahint on">Amarrando <b>#${esc(selE.o.num)}</b> · ${esc(selE.x.code)}: toque em <b>Amarrar aqui</b> no item certo.</div>`:""}</div>
-        <div class="nalist" id="naL">${leftRows()}</div></section>
-      <section class="card nacol nacr"><div class="nach"><span class="natag pv">Pré-vendas</span><div class="nachr"><h2>Pré-vendas com encomenda</h2><button class="mini" id="naNewPv">+ Cadastrar pré-venda</button></div>
-          <input class="tinput" id="naQR" placeholder="Buscar pré-venda: número, cliente, código ou descrição" value="${esc(E.qR)}" autocomplete="off"></div>
-        <div class="nalist" id="naR">${rightBody()}</div></section>
-    </div>
-    ${E.dirty?`<div class="nadirty"><span>Alterações ainda não salvas</span><button class="btn primary" id="naSave2">Salvar nota</button></div>`:""}`;
+    <div class="nbtools"><input class="tinput" id="naQL" placeholder="Buscar item da nota: código ou descrição" value="${esc(E.qL)}" autocomplete="off">
+      <div class="seg nafil">${[["estq","Para estoque"],["amar","Amarrados"]].map(([k,t])=>`<button data-nafil="${k}" aria-pressed="${E.fL===k}">${t} <span class="n">${cnt[k]}</span></button>`).join("")}</div></div>
+    <div class="nbwork" data-pane="${E.pane}"><div class="nblist" id="naL">${listHtml}</div><section class="nbpanel" id="naP">${panel()}</section></div>
+    ${E.dirty?`<div class="nadirty"><span>Alterações ainda não salvas</span><span class="nbdb"><button class="btn ghost" id="naDraft2">Salvar e continuar depois</button><button class="btn primary" id="naSave2">Liberar para a separação</button></span></div>`:""}
+    ${sheet()}`;
   bindNav();
-  const pane0=E.pane, g=id=>document.getElementById(id), keep=()=>({l:g("naL")?.scrollTop||0, r:g("naR")?.scrollTop||0, y:scrollY});
-  const redraw=(resetR)=>{ const k=keep(); render(); const L=g("naL"), R=g("naR"); if(L) L.scrollTop=k.l; if(R) R.scrollTop=resetR?0:k.r; scrollTo(0,k.y);
-    if(E.pane!==pane0 && matchMedia("(max-width:900px)").matches) app.querySelector(".napanes")?.scrollIntoView({block:"start"}); };
+  const g=id=>document.getElementById(id);
   const touch=()=>{ E.dirty=true; E.err=""; E.auto=0; };
-  g("nfForn").oninput=e=>{ N.forn=e.target.value; E.dirty=true; }; g("nfNum").oninput=e=>{ N.num=e.target.value.trim(); E.dirty=true; }; g("nfVols").oninput=e=>{ N.vols=Math.max(0,+e.target.value||0); E.dirty=true; };
-  const bindL=()=>{ g("naL").querySelectorAll("[data-nal]").forEach(d=>{ const go=e=>{ if(e.target.closest("[data-nabind]")) return; const j=+d.dataset.nal; E.sel = E.sel===j ? null : j; E.enc=null; resetPage("naR"); if(E.sel!=null) E.pane="pvs"; redraw(true); };
-      d.onclick=go; d.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(e); } }; });
-    g("naL").querySelectorAll("[data-nabind]").forEach(b=>b.onclick=()=>{ add(+b.dataset.nabind, selE); }); };
-  const bindR=()=>{ const R=g("naR");
-    R.querySelectorAll("[data-nae]").forEach(d=>{ const go=e=>{ if(e.target.closest("[data-naadd]")) return; if(selL) return; E.enc = E.enc===d.dataset.nae ? null : d.dataset.nae; resetPage("naL"); if(E.enc) E.pane="itens"; redraw(); };
-      d.onclick=go; d.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(e); } }; });
-    R.querySelectorAll("[data-naadd]").forEach(b=>b.onclick=()=>add(E.sel, encAll.find(c=>c.key===b.dataset.naadd)));
-    R.querySelectorAll("[data-naq]").forEach(b=>b.onclick=()=>{ const a=selL.alloc[+b.dataset.naq]; a.qty=Math.max(1,(+a.qty||0)+(+b.dataset.d)); touch(); redraw(); });
-    R.querySelectorAll("[data-naqi]").forEach(i=>i.onchange=()=>{ selL.alloc[+i.dataset.naqi].qty=Math.max(1,+i.value||1); touch(); redraw(); });
-    R.querySelectorAll("[data-narm]").forEach(b=>b.onclick=()=>{ selL.alloc.splice(+b.dataset.narm,1); touch(); redraw(); });
-    const ds=g("naDesel"); if(ds) ds.onclick=()=>{ E.sel=null; E.enc=null; E.pane="itens"; redraw(); }; };
-  function add(j, c){ const l=N.lines[j]; if(!l || !c) return;
-    if(l.alloc.some(a=>a.oid===c.o.id && a.i===c.x.i)){ toast("Item já amarrado"); return; }
-    const free=l.qty-used(l), left=encLeft(c);
-    if(free<=0){ toast("Item sem peças livres"); return; }
-    const q=Math.max(1, Math.min(free, left>0?left:c.x.qtyEnc)); if(left<=0) setTimeout(()=>toast(`#${c.o.num} já estava completa`), 50); l.alloc.push({oid:c.o.id, i:c.x.i, qty:q}); touch();
-    toast(`Amarrado ao #${c.o.num} · ${q} pç`); E.sel=j; E.enc=null; E.pane="pvs"; redraw(); }
-  bindL(); bindR();
-  const typed=(id, key, list, html, bind)=>{ const el=g(id); el.oninput=()=>{ E[key]=el.value; resetPage(list); clearTimeout(el._t); el._t=setTimeout(()=>{ g(list).innerHTML=html(); g(list).scrollTop=0; bind(); },120); }; };
-  typed("naQL","qL","naL",leftRows,bindL); typed("naQR","qR","naR",rightBody,bindR);
-  app.querySelectorAll("[data-nafil]").forEach(b=>b.onclick=()=>{ E.fL=b.dataset.nafil; resetPage("naL"); const k=keep(); render(); scrollTo(0,k.y); });
+  const snap=()=>{ E.undo.push(JSON.stringify(N.lines.map(l=>l.alloc||[]))); if(E.undo.length>40) E.undo.shift(); };
+  const redraw=fn=>{ const b=nbRects(), y=scrollY; fn&&fn(); render(); scrollTo(0,y); nbAnimate(b); };
+  window._nbUndo=()=>{ const s=E.undo.pop(); if(!s){ nbUndoToast("Nada para desfazer"); return; } const al=JSON.parse(s); redraw(()=>{ N.lines.forEach((l,k)=>l.alloc=al[k]||[]); E.dirty=true; }); nbUndoToast("Desfeito"); };
+  function add(j, c, qty, silent){ const l=N.lines[j]; if(!l || !c) return 0;
+    const fr=free(l), lf=encLeft(c), qq=Math.min(qty??Infinity, fr, lf);
+    if(fr<=0){ if(!silent) nbUndoToast("A nota não tem mais peças deste item"); return 0; }
+    if(lf<=0){ if(!silent) nbUndoToast(`A encomenda da #${c.o.num} já está completa`); return 0; }
+    if(!silent) snap();
+    const cur=l.alloc.find(a=>a.oid===c.o.id && a.i===c.x.i); if(cur) cur.qty=(+cur.qty||0)+qq; else l.alloc.push({oid:c.o.id, i:c.x.i, qty:qq});
+    touch(); if(!silent){ redraw(); nbUndoToast(`#${c.o.num} · ${qq} pç amarrada${qq>1?"s":""} ao ${lineCode(l)}`, true); }
+    return qq; }
+  const encBy = key => encAll.find(c=>c.key===key);
+  // lista
+  app.querySelectorAll("[data-nal]").forEach(b=>b.onclick=()=>{ const j=+b.dataset.nal; if(E.sel!==j){ E.sel=j; E.qR=""; resetPage("naR"); } E.pane="pvs"; E.sheet=null; redraw(); if(mob) g("naP")?.scrollIntoView({block:"start"}); });
+  app.querySelectorAll("[data-nafil]").forEach(b=>b.onclick=()=>{ E.fL=b.dataset.nafil; resetPage("naL"); redraw(); });
   app.querySelectorAll("[data-napane]").forEach(b=>b.onclick=()=>{ E.pane=b.dataset.napane; redraw(); });
-  const save=()=>{
-    if(!N.num){ E.err="Informe o número da NF."; return redraw(); }
-    if(!String(N.forn||"").trim()){ E.err="Informe o fornecedor."; return redraw(); }
-    const over=N.lines.findIndex(l=>used(l)>l.qty); if(over>=0){ E.err=`O item ${N.lines[over].code} tem mais peças amarradas do que na nota.`; E.sel=over; E.enc=null; E.pane="pvs"; return redraw(); }
-    saveNf(N); state.nfEdit=null; state.cTab="notas"; render(); scrollTo(0,0); };
-  g("naSave").onclick=save; if(g("naSave2")) g("naSave2").onclick=save;
-  g("naTour").onclick=()=>nfTour();
+  const typed=(id, key, page)=>{ const el=g(id); if(!el) return; el.oninput=()=>{ E[key]=el.value; resetPage(page); clearTimeout(el._t); el._t=setTimeout(()=>{ const pos=el.selectionStart; render(); const n=g(id); if(n){ n.focus(); try{ n.setSelectionRange(pos,pos); }catch(e){} } },160); }; };
+  typed("naQL","qL","naL"); typed("naQR","qR","naR");
+  // painel
+  app.querySelectorAll("[data-naadd]").forEach(b=>b.onclick=()=>add(E.sel, encBy(b.dataset.naadd)));
+  app.querySelectorAll("[data-naaddl]").forEach(b=>b.onclick=()=>{ const [j,key]=b.dataset.naaddl.split("|"); add(+j, encBy(key)); });
+  app.querySelectorAll("[data-naall]").forEach(b=>b.onclick=()=>{ const o=ORDERS.find(x=>x.id===b.dataset.naall); if(!o) return; snap(); let n=0;
+    encItems(o).forEach(x=>{ let j; while(leftOf(o,x.i)>0 && (j=lineFor(x))>=0){ const got=add(j, {o,x,key:o.id+":"+x.i}, undefined, true); if(!got) break; n+=got; } });
+    if(!n){ E.undo.pop(); nbUndoToast("Nada desta pré-venda para amarrar nesta nota"); return; } redraw(); nbUndoToast(`#${o.num} · ${n} pç amarradas nos itens desta nota`, true); });
+  app.querySelectorAll("[data-naq]").forEach(b=>b.onclick=()=>{ const a=selL.alloc[+b.dataset.naq]; const c=encBy(a.oid+":"+a.i); const max=a.qty+Math.max(0,free(selL))+(c?0:0);
+    const lf=c?encLeft(c):0, nv=Math.max(1, Math.min(a.qty+(+b.dataset.d), a.qty+Math.max(0,free(selL)), a.qty+lf)); if(nv===a.qty) return; snap(); a.qty=nv; touch(); redraw(); });
+  app.querySelectorAll("[data-naqi]").forEach(i=>i.onchange=()=>{ const a=selL.alloc[+i.dataset.naqi]; const c=encBy(a.oid+":"+a.i), lf=c?encLeft(c):0;
+    const nv=Math.max(1, Math.min(Math.round(+i.value||1), a.qty+Math.max(0,free(selL)), a.qty+lf)); snap(); a.qty=nv; touch(); redraw(); });
+  app.querySelectorAll("[data-narm]").forEach(b=>b.onclick=()=>{ const a=selL.alloc[+b.dataset.narm]; const o=ORDERS.find(x=>x.id===a.oid); snap(); selL.alloc.splice(+b.dataset.narm,1); touch(); redraw(); nbUndoToast(`#${o?.num||"?"} tirada deste item · as peças voltam para o estoque`, true); });
+  app.querySelectorAll("[data-najump]").forEach(b=>b.onclick=()=>{ E.sel=+b.dataset.najump; E.qR=""; resetPage("naR"); E.sheet=null; E.pane="pvs";
+    const k=rows.findIndex(r=>r.j===E.sel); if(k<0){ E.fL = free(N.lines[E.sel])>0 ? "estq" : "amar"; E.qL=""; } redraw(); });
+  app.querySelectorAll("[data-nasheet]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); E.sheet=b.dataset.nasheet; render(); nbAnimate({}); setTimeout(()=>document.querySelector(".nbsheet .nbclose")?.focus(),40); });
+  app.querySelectorAll("[data-nashut]").forEach(b=>b.onclick=()=>{ E.sheet=null; render(); });
   app.querySelectorAll("[data-nadest]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); const o=ORDERS.find(x=>x.id===b.dataset.nadest); if(o) openPvDest(o); });
-  g("naNewPv").onclick=()=>openPvEnc(o=>{ E.qR=o.num; E.enc=null; resetPage("naR"); if(!selL) E.pane="pvs"; });
-  g("naBack").onclick=async()=>{ if(E.dirty && !(await askModal({title:"Sair sem salvar?", text:"As amarrações feitas nesta tela ainda não foram salvas.", okText:"Sair sem salvar", danger:true}))) return; state.nfEdit=null; render(); };
+  if(g("naNewPv")) g("naNewPv").onclick=()=>openPvEnc(o=>{ E.qR=o.num; resetPage("naR"); });
+  // arrastar e soltar (computador): da sugestão para "Amarradas a este item"
+  app.querySelectorAll("[data-nadrag]").forEach(c=>{ c.ondragstart=e=>{ e.dataTransfer.setData("text/plain", c.dataset.nadrag); e.dataTransfer.effectAllowed="copy"; c.classList.add("dragging"); }; c.ondragend=()=>{ c.classList.remove("dragging"); app.querySelectorAll(".nbzone.dz").forEach(z=>z.classList.remove("dz")); }; });
+  app.querySelectorAll("[data-nadrop]").forEach(z=>{ z.ondragover=e=>{ e.preventDefault(); z.classList.add("dz"); }; z.ondragleave=e=>{ if(!z.contains(e.relatedTarget)) z.classList.remove("dz"); };
+    z.ondrop=e=>{ e.preventDefault(); z.classList.remove("dz"); add(+z.dataset.nadrop, encBy(e.dataTransfer.getData("text/plain"))); }; });
+  g("nfForn").oninput=e=>{ N.forn=e.target.value; E.dirty=true; }; g("nfNum").oninput=e=>{ N.num=e.target.value.trim(); E.dirty=true; }; g("nfVols").oninput=e=>{ N.vols=Math.max(0,+e.target.value||0); E.dirty=true; };
+  // salvar
+  const check=()=>{ if(!N.num){ E.err="Informe o número da NF."; render(); return false; }
+    if(!String(N.forn||"").trim()){ E.err="Informe o fornecedor."; render(); return false; }
+    const over=N.lines.findIndex(l=>used(l)>l.qty); if(over>=0){ E.err=`O item ${lineCode(N.lines[over])} tem mais peças amarradas do que na nota.`; E.sel=over; E.pane="pvs"; render(); return false; }
+    return true; };
+  const leave=()=>{ state.nfEdit=null; state.cTab="notas"; const t=document.getElementById("nbUndo"); if(t) t.hidden=true; render(); scrollTo(0,0); };
+  const draft=()=>{ if(!check()) return; saveNfDraft(N); leave(); };
+  const release=()=>{ if(!check()) return; openNbRelease(N, selfId, ()=>{ saveNf(N); leave(); }); };
+  g("naDraft").onclick=draft; g("naSave").onclick=release; if(g("naDraft2")) g("naDraft2").onclick=draft; if(g("naSave2")) g("naSave2").onclick=release;
+  g("naTour").onclick=()=>nfTour();
+  g("naBack").onclick=async()=>{ if(E.dirty && !(await askModal({title:"Sair sem salvar?", text:"As amarrações feitas nesta tela ainda não foram salvas.", okText:"Sair sem salvar", danger:true}))) return; state.nfEdit=null; const t=document.getElementById("nbUndo"); if(t) t.hidden=true; render(); };
+  // teclado: Ctrl+Z desfaz, 1–9 amarra a sugestão, Esc fecha a pré-venda
+  if(!window._nbKeys){ window._nbKeys=true; document.addEventListener("keydown",e=>{ const S=state.nfEdit; if(!S || document.querySelector(".modal,.tour")) return; const t=e.target;
+    if(e.key==="Escape" && S.sheet){ S.sheet=null; render(); return; }
+    if(t.matches && t.matches("input,textarea,select")) return;
+    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="z"){ e.preventDefault(); window._nbUndo && window._nbUndo(); return; }
+    if(/^[1-9]$/.test(e.key) && S.sel!=null && !S.sheet && !e.ctrlKey && !e.metaKey && !e.altKey){ const b=document.querySelectorAll("#naP .nbcard.sg [data-naadd]")[+e.key-1]; if(b && !b.disabled){ e.preventDefault(); b.click(); } } }); }
+}
+/* confirmação do "Salvar e liberar": mostra o que vai para a separação e quando */
+function openNbRelease(N, selfId, ok){
+  const recv=!!NFS[selfId]?.received, by={};
+  N.lines.forEach(l=>(l.alloc||[]).forEach(a=>{ if(+a.qty>0) (by[a.oid] ||= []).push({l,a}); }));
+  const otherNf = it => (it.compra?.nf||[]).filter(n=>n.id!==selfId).reduce((t,n)=>t+(+n.qty||0),0);
+  const rows=Object.entries(by).map(([oid,rs])=>{ const o=ORDERS.find(x=>x.id===oid); if(!o) return null;
+    const full=encItems(o).every(x=>otherNf(o.items[x.i]||{}) + rs.filter(r=>r.a.i===x.i).reduce((t,r)=>t+(+r.a.qty||0),0) + N.lines.filter(l=>!rs.some(r=>r.l===l)).reduce((t,l)=>t+(l.alloc||[]).filter(a=>a.oid===oid&&a.i===x.i).reduce((u,a)=>u+(+a.qty||0),0),0) >= x.qtyEnc);
+    return {o, rs, full}; }).filter(Boolean).sort((a,b)=>(a.o.createdAt||0)-(b.o.createdAt||0));
+  const pcs=rows.reduce((t,r)=>t+r.rs.reduce((u,x)=>u+(+x.a.qty||0),0),0), stock=N.lines.reduce((t,l)=>t+Math.max(0,l.qty-(l.alloc||[]).reduce((u,a)=>u+(+a.qty||0),0)),0);
+  const when = recv ? "entram na fila da separação agora" : "entram na fila da separação assim que o Recebimento conferir a nota";
+  const ov=document.createElement("div"); ov.className="modal";
+  ov.innerHTML=`<div class="mbox nbrel" role="dialog" aria-modal="true" aria-label="Liberar para a separação"><h2>Liberar para a separação</h2>
+    <p>${rows.length?`A nota fica salva e estas pré-vendas ${when}.`:"Nenhuma pré-venda amarrada: a nota fica salva e todas as peças vão para o estoque."}</p>
+    ${rows.length?`<div class="nbrl">${rows.map(({o,rs,full})=>`<div class="nbrli" style="--c:${nbColor(o)}"><div><b class="mono">#${esc(o.num)}</b> ${esc(o.client||"")}</div>
+      <div class="muted-s">${rs.map(({l,a})=>`<b class="mono">${esc(l.sku||l.code)}</b> · ${a.qty} pç`).join(" &nbsp;·&nbsp; ")}</div>
+      <span class="nbpill ${full?"ok":"war"}">${full ? `Encomenda completa → ${o.retira||o.naLoja?"separa e guarda na colmeia · cliente retira":"separa e finaliza na mesa · envio"}` : "Parte da encomenda → separa o que chegou e guarda na colmeia · aguarda o resto"}</span></div>`).join("")}</div>`:""}
+    <div class="nbmsum"><span><b>${rows.length}</b> pré-venda${rows.length===1?"":"s"} · <b>${pcs}</b> pç amarradas</span><span><b>${stock}</b> pç para o estoque</span></div>
+    <div class="mact"><button class="btn ghost" id="mNo">Voltar e revisar</button><button class="btn primary" id="mOk">${rows.length?`Liberar ${rows.length} pré-venda${rows.length===1?"":"s"}`:"Salvar nota"}</button></div></div>`;
+  document.body.appendChild(ov); scanbar.hidden=true;
+  const close=()=>{ ov.remove(); };
+  ov.querySelector("#mNo").onclick=()=>{ close(); render(); }; ov.onclick=e=>{ if(e.target===ov){ close(); render(); } };
+  ov.querySelector("#mOk").onclick=()=>{ close(); ok(); }; ov.querySelector("#mOk").focus();
+}
+/* "Salvar e continuar depois": guarda a amarração como rascunho, sem mexer nas pré-vendas nem liberar nada */
+function saveNfDraft(N){
+  const id=nfId(N), prev=NFS[id], now=Date.now();
+  const doc = prev ? JSON.parse(JSON.stringify(prev)) : { id, chave:N.chave||"", num:N.num, serie:N.serie||"", emissao:N.emissao||"", cnpj:N.cnpj||"", received:null, conf:null, createdAt:now, importedAt:now, importedBy:ME.id||"" };
+  const same = (doc.lines||[]).length===N.lines.length && N.lines.every((l,k)=>doc.lines[k].code===l.code);
+  Object.assign(doc, { num:N.num, forn:String(N.forn).trim(), vols:N.vols||0,
+    lines:N.lines.map((l,k)=>({code:l.code, name:l.name, qty:l.qty, un:l.un||"", ped:l.ped||"", sku:l.sku||"", alloc: same ? (doc.lines[k].alloc||[]) : []})),
+    draft:{ at:now, by:ME.id||"", lines:N.lines.map(l=>(l.alloc||[]).filter(a=>+a.qty>0).map(a=>({oid:a.oid, i:a.i, qty:+a.qty}))) } });
+  NFS[id]=doc; if(nfCol) queueWrite("nf-"+id, ()=>nfCol.doc(id).set(JSON.parse(JSON.stringify(doc))));
+  const n=doc.draft.lines.reduce((t,a)=>t+a.length,0);
+  toast(`Rascunho da NF ${doc.num} salvo · ${n} amarração(ões) · nada foi liberado`);
 }
 function saveNf(N){
   const id=nfId(N), prev=NFS[id], now=Date.now();
