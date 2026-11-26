@@ -2,7 +2,7 @@
 
 Base de conhecimento do assistente **Lucas**. Descreve como o sistema funciona hoje, tela por tela e passo a passo. Sempre que uma atualização for publicada, este manual é atualizado junto.
 
-Última atualização: 26/11/2026 (Compras: métricas do setor).
+Última atualização: 26/11/2026 (Atividade: eventos de Compras).
 
 ---
 
@@ -427,7 +427,7 @@ Primeiro item do menu, só para o Administrador. O botão mostra um número **ve
   - Atenção: fila com mais de 2 h; pedido na mesa há mais de 2 h; bipagens incorretas (24 h); aguardando desmembramento há mais de 4 h; 1º envio com peça faltando (crítico); colmeia parada; nota recebida com divergência; conferência de nota parada há mais de 4 h; encomenda sem nota amarrada há mais de 7 dias; pré-venda de Compras sem destino; faltas na separação (7 dias); produto da fila sem endereço; e-commerce com cadastro diferente do site.
   - Informativos: nota há mais de 7 dias sem recebimento; separação reiniciada (7 dias); produto sem EAN; erros técnicos nas últimas 24 h.
 - **Equipe**: por pessoa (hoje, 7 ou 30 dias): pedidos, peças, tempo médio, peças por hora, bipagens de endereço (mostra se o separador confirma o local antes de pegar), itens por EAN, itens por endereço, fora do padrão, bipagens incorretas, faltas, reinícios, notas conferidas, ajustes de nota e total de ações.
-- **Atividade**: tudo o que foi feito no sistema, do mais recente para o mais antigo (pré-vendas, e-commerce, separação, mesa, colmeia, envio, recebimento, ajustes). Filtros por período, pessoa e área, e busca por pedido, cliente ou ação. Texto longo termina em "…": toque no texto para abrir por inteiro (toque de novo fecha); toque no resto da linha para abrir o pedido. O nome da pessoa aparece sem o "@…" do e-mail.
+- **Atividade**: tudo o que foi feito no sistema, do mais recente para o mais antigo (pré-vendas, e-commerce, separação, mesa, colmeia, envio, recebimento, ajustes). Filtros por período, pessoa e área, e busca por pedido, cliente ou ação. Texto longo termina em "…": toque no texto para abrir por inteiro (toque de novo fecha); toque no resto da linha para abrir o pedido. O nome da pessoa aparece sem o "@…" do e-mail. Área **Compras**: importação de nota fiscal, amarração liberada (com itens e pré-vendas), amarração salva em rascunho ou desfeita, pedido ao fornecedor importado, decisões de Compras, desmembramentos, destino definido e item marcado como "Chegou". Tocar num evento de nota abre a nota em Compras → Notas fiscais (já aberta); de pedido ao fornecedor, abre a aba Pedidos ao fornecedor. As amarrações de notas antigas aparecem só pela última vez que a nota foi salva.
 - **Erros do sistema**: falhas técnicas registradas pelos aparelhos, agrupadas por tipo, com quantas vezes e em qual aparelho (coletor, Android, iPhone, computador).
 
 ---

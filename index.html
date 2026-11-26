@@ -3712,6 +3712,8 @@ function saveNfDraft(N){
   Object.assign(doc, { num:N.num, forn:String(N.forn).trim(), vols:N.vols||0,
     lines:N.lines.map((l,k)=>({code:l.code, name:l.name, qty:l.qty, un:l.un||"", ped:l.ped||"", sku:l.sku||"", alloc: same ? (doc.lines[k].alloc||[]) : []})),
     draft:{ at:now, by:ME.id||"", lines:N.lines.map(l=>(l.alloc||[]).filter(a=>+a.qty>0).map(a=>({oid:a.oid, i:a.i, qty:+a.qty}))) } });
+  doc.hist=[...(doc.hist||[]), ...(prev?[]:[{t:now, by:ME.id||"", ev:`Nota fiscal importada · ${N.lines.length} itens · ${N.lines.reduce((t,l)=>t+(+l.qty||0),0)} pç`}]),
+    {t:now, by:ME.id||"", ev:`Amarração salva em rascunho · ${doc.draft.lines.reduce((t,a)=>t+a.length,0)} amarração(ões) · nada liberado`}].slice(-80);
   NFS[id]=doc; if(nfCol) queueWrite("nf-"+id, ()=>nfCol.doc(id).set(JSON.parse(JSON.stringify(doc))));
   const n=doc.draft.lines.reduce((t,a)=>t+a.length,0);
   toast(`Rascunho da NF ${doc.num} salvo · ${n} amarração(ões) · nada foi liberado`);
@@ -3722,7 +3724,13 @@ function saveNf(N){
     lines:N.lines.map(l=>({code:l.code, name:l.name, qty:l.qty, un:l.un||"", ped:l.ped||"", sku:l.sku||"", alloc:(l.alloc||[]).filter(a=>+a.qty>0).map(a=>({oid:a.oid, i:a.i, qty:+a.qty}))})),
     received: prev?.received || null, conf: prev?.conf || null, createdAt: prev?.createdAt||now, importedAt:now, importedBy:ME.id||"" };
   { const sig=d=>JSON.stringify((d?.lines||[]).map(l=>(l.alloc||[]).map(a=>[a.oid,a.i,+a.qty]))), has=doc.lines.some(l=>l.alloc.length);
-    if(has && sig(doc)!==sig(prev)){ doc.amarradoAt=now; doc.amarradoBy=ME.id||""; } else if(prev?.amarradoAt){ doc.amarradoAt=prev.amarradoAt; doc.amarradoBy=prev.amarradoBy||""; } } // métrica de Compras: última amarração
+    if(has && sig(doc)!==sig(prev)){ doc.amarradoAt=now; doc.amarradoBy=ME.id||""; } else if(prev?.amarradoAt){ doc.amarradoAt=prev.amarradoAt; doc.amarradoBy=prev.amarradoBy||""; } // métrica de Compras: última amarração
+    // registro de atividades de Compras (Gestão → Atividade)
+    const H=[...(prev?.hist||[])], by=ME.id||"", pvs=[...new Set(doc.lines.flatMap(l=>l.alloc.map(a=>a.oid)))], nums=pvs.map(id=>"#"+(ORDERS.find(o=>o.id===id)?.num||id.replace(/^PV-/,""))), nIt=doc.lines.filter(l=>l.alloc.length).length;
+    if(!prev) H.push({t:now, by, ev:`Nota fiscal importada · ${doc.lines.length} itens · ${doc.lines.reduce((t,l)=>t+(+l.qty||0),0)} pç`});
+    if(sig(doc)!==sig(prev) && (has || (prev?.lines||[]).some(l=>(l.alloc||[]).length))) H.push({t:now, by, ev: has ? `Amarração liberada para a separação · ${nIt} ite${nIt===1?"m":"ns"} · ${pvs.length} pré-venda${pvs.length===1?"":"s"} (${nums.slice(0,6).join(", ")}${nums.length>6?"…":""})` : "Amarração desfeita · tudo para o estoque", k: has?"ok":"warn"});
+    else if(prev?.draft) H.push({t:now, by, ev:"Rascunho da amarração liberado sem mudanças"});
+    doc.hist=H.slice(-80); }
   // nota já recebida: refaz a divisão do que chegou entre as pré-vendas amarradas agora (o conferido de cada item vai primeiro para as pré-vendas, o resto para estoque)
   if(doc.received){ const R={...doc.received}, same=(R.lines||[]).length===doc.lines.length, alloc={};
     doc.lines.forEach((l,k)=>{ let left = same ? +R.lines[k].qty||0 : l.qty; l.alloc.forEach(a=>{ const q=Math.min(left, +a.qty||0); alloc[a.oid+":"+a.i]=q; left-=q; }); });
@@ -7845,19 +7853,26 @@ function gActivity(days){
   ORDERS.concat(DELETED||[]).forEach(o=>{
     const last=Math.max(+o.createdAt||0, +o.pickedAt||0, +o.storedAt||0, +o.sentAt||0, +o.sentAt1||0, +o.deletedAt||0, ...(o.hist||[]).map(h=>+h.t||0), ...(o.restarts||[]).map(r=>+r.at||0));
     if(last<since) return;
-    orderTimeline(o).forEach(e=>{ if(e.t>=since) ev.push({t:e.t, txt:e.txt, by:e.by||"", k:e.k||"", ref:gRef(o), open:{k:"o",id:o.id}, area:isEco(o)?"E-commerce":"Pré-venda"}); });
+    orderTimeline(o).forEach(e=>{ if(e.t>=since) ev.push({t:e.t, txt:e.txt, by:e.by||"", k:e.k||"", ref:gRef(o), open:{k:"o",id:o.id}, area:CP_EV.test(e.txt)?"Compras":isEco(o)?"E-commerce":"Pré-venda"}); });
+    (o.items||[]).forEach(it=>{ const c=it.compra; if(c?.arrivedBy && c.arrivedAt>=since) ev.push({t:c.arrivedAt, txt:`Item ${it.code} marcado como "Chegou" por Compras`, by:c.arrivedBy, k:"ok", ref:gRef(o), open:{k:"o",id:o.id}, area:"Compras"}); });
     (o.res||[]).forEach((r,i)=>{ if(!r?.at || r.at<since) return; const c=o.items?.[i]?.code||"";
       const off=howOff(o,r), txt = r.status==="miss" ? `Item ${c} marcado como falta` : EAN_HOW(r.how) ? `Item ${c} conferido por leitura do EAN · ${r.got} pç`
         : r.how==="local" ? `Item ${c} conferido por endereço + OK · ${r.got} pç${off?" · fora do padrão (cliente na loja)":""}` : `Item ${c} confirmado no OK sem bipar · ${r.got} pç · fora do padrão`;
       ev.push({t:r.at, txt, by:r.by||"", k:r.status==="miss"||off?"warn":EAN_HOW(r.how)?"ok":"", ref:gRef(o), open:{k:"o",id:o.id}, area:isEco(o)?"E-commerce":"Pré-venda"}); });
   });
-  Object.values(NFS||{}).forEach(n=>{ const R=n.received, ref=`NF ${n.num} · ${n.forn||""}`, op={k:"nf",id:n.id};
+  Object.values(NFS||{}).forEach(n=>{ const R=n.received, ref=`NF ${n.num} · ${n.forn||""}`, op={k:"nf",id:n.id}, cp={k:"cpnf",id:n.id}, H=n.hist||[];
+    H.forEach(x=>{ if(x.t>=since) ev.push({t:x.t, txt:x.ev, by:x.by||"", k:x.k||"", ref, open:cp, area:"Compras"}); });
+    if(!H.some(x=>/importada/.test(x.ev)) && (n.createdAt||0)>=since) ev.push({t:n.createdAt, txt:`Nota fiscal importada · ${(n.lines||[]).length} itens`, by:n.importedBy||"", k:"", ref, open:cp, area:"Compras"}); // notas de antes do registro
+    if(!H.length && (n.lines||[]).some(l=>(l.alloc||[]).length) && (n.importedAt||0)>=since && n.importedAt!==n.createdAt) ev.push({t:n.importedAt, txt:"Amarração da nota salva", by:n.importedBy||"", k:"", ref, open:cp, area:"Compras"});
     if(R?.at>=since) ev.push({t:R.at, txt:`Nota recebida${R.div?" com divergência":""} · ${R.vols||0} caixa(s)`, by:R.by||"", k:R.div?"warn":"ok", ref, open:op, area:"Recebimento"});
     (R?.adj||[]).forEach(a=>{ if(a.at>=since) ev.push({t:a.at, txt:`Recebido ajustado: ${(a.ch||[]).map(c=>`${c.code} ${c.de}→${c.para}`).join(", ")||"caixas"}`, by:a.by||"", k:"warn", ref, open:op, area:"Recebimento"}); });
     if(!R && n.conf?.at>=since) ev.push({t:n.conf.at, txt:`Conferência em andamento · ${Object.keys(n.conf.chk||{}).length} item(ns)`, by:n.conf.by||"", k:"", ref, open:op, area:"Recebimento"});
   });
+  Object.values(PURCHASES||{}).forEach(p=>{ if((p.createdAt||0)>=since){ const lk=(p.lines||[]).reduce((t,l)=>t+(l.links||[]).length,0);
+    ev.push({t:p.createdAt, txt:`Pedido ao fornecedor importado · ${(p.lines||[]).length} ite${(p.lines||[]).length===1?"m":"ns"} · ${lk} vínculo${lk===1?"":"s"} com pré-vendas${p.prev?` · previsão ${fmtDate(p.prev)}`:""}`, by:p.createdBy||"", k:"", ref:`${p.forn||"Fornecedor"}${p.num?" · pedido "+p.num:""}`, open:{k:"pc",id:p.id}, area:"Compras"}); } });
   return ev.sort((a,b)=>b.t-a.t);
 }
+const CP_EV = /Compras|desmembr|Destino definido|pedido ao fornecedor|encomenda recalculada/i; // eventos do pedido que são do setor de Compras
 
 /* ---- tela ---- */
 function gLoadErrors(force){ if(!window.psErrors || G.errLoading || (!force && G.err && Date.now()-G.errAt<6e4)) return;
@@ -7970,7 +7985,7 @@ function gAtividade(){
   return `<section class="panel"><div class="gbarh"><h3>Atividade · ${list.length} registro(s)</h3>
       <div class="gfilt"><div class="seg" role="group" aria-label="Período">${[[1,"Hoje"],[7,"7 dias"],[30,"30 dias"]].map(([k,t])=>`<button data-gdays="${k}" aria-pressed="${d===k}">${t}</button>`).join("")}</div>
       <select class="tin" id="gWho" aria-label="Pessoa"><option value="">Todas as pessoas</option>${people.map(id=>`<option value="${esc(id)}" ${who===id?"selected":""}>${esc(gName(id))}</option>`).join("")}</select>
-      <select class="tin" id="gArea" aria-label="Área"><option value="">Todas as áreas</option>${["Pré-venda","E-commerce","Recebimento"].map(a=>`<option ${area===a?"selected":""}>${a}</option>`).join("")}</select>
+      <select class="tin" id="gArea" aria-label="Área"><option value="">Todas as áreas</option>${["Pré-venda","E-commerce","Compras","Recebimento"].map(a=>`<option ${area===a?"selected":""}>${a}</option>`).join("")}</select>
       <input class="tin" id="gQ" type="search" placeholder="Buscar: pedido, cliente, ação" value="${esc(state.gQ||"")}" autocomplete="off"></div></div>
     ${pg.items.length ? `<div class="gfeed">${pg.items.map(e=>`<button class="gev ${e.k?"k-"+e.k:""}" data-gopen="${e.open.k}:${esc(e.open.id)}"><time class="tnum">${dt(e.t)}</time><span class="gevt" title="${esc(e.txt)}">${esc(e.txt)}</span><span class="gevr" title="${esc(e.ref)}">${esc(e.ref)}</span><small title="${e.by?esc(gName(e.by)):"sistema"}">${e.by?esc(gShort(e.by)):"sistema"}</small></button>`).join("")}</div>${pg.pager}` : `<p class="hint">Nenhum registro com esses filtros.</p>`}</section>`;
 }
@@ -7998,6 +8013,8 @@ function gOrderModal(o){
 function gOpen(k, id){
   if(k==="o"){ const o=[...ORDERS, ...(DELETED||[])].find(x=>x.id===id); if(o) gOrderModal(o); return; }
   if(k==="nf"){ const n=NFS[id]; if(!n) return; state.sector="recebimento"; state.view="orders"; openReceb(n); return; }
+  if(k==="cpnf"){ state.sector="compras"; state.view="orders"; state.nfEdit=null; state.cTab="notas"; state.cQ=""; state.nfOpen=[id]; resetPage("cpnf"); const n=NFS[id], all=Object.values(NFS).sort((a,b)=>(b.importedAt||b.createdAt||0)-(a.importedAt||a.createdAt||0)), k2=all.indexOf(n); if(k2>=0){ state.pg ||= {}; state.pg.cpnf=Math.floor(k2/15)+1; } render(); scrollTo(0,0); return; }
+  if(k==="pc"){ state.sector="compras"; state.view="orders"; state.nfEdit=null; state.cTab="fornecedor"; state.cpOpen=[...new Set([...(state.cpOpen||[]), id])]; render(); scrollTo(0,0); return; }
   if(k==="p"){ state.sector="estoque"; state.etab="produtos"; state.prodQ=id; render(); return; }
   if(k==="tab"){ state.gTab=id; render(); }
 }
