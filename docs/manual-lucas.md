@@ -2,7 +2,7 @@
 
 Base de conhecimento do assistente **Lucas**. Descreve como o sistema funciona hoje, tela por tela e passo a passo. Sempre que uma atualização for publicada, este manual é atualizado junto.
 
-Última atualização: 26/11/2026 (nova tela de amarração da nota fiscal).
+Última atualização: 26/11/2026 (Compras: notas fiscais abrem os itens e selo +25 dias).
 
 ---
 
@@ -273,6 +273,8 @@ Aba **Compras**. Abas internas (todas com paginação):
 - **Pedidos ao fornecedor**: pedidos de compra importados.
 - **Concluídas**: encomendas que já chegaram.
 
+**Selo +25 dias**: pré-venda cuja encomenda ainda não chegou e que já passou de **25 dias corridos desde a data da pré-venda** ganha o selo vermelho **"+25 dias · N dias sem chegar"** nos cards de **Em aberto** e nas linhas de **Aguardando chegada**. A aba **Em aberto** mostra quantas estão assim (ex.: "3 +25d"). É só um aviso para cobrar o fornecedor: não muda nada no pedido.
+
 Compras recebe **aviso no sistema (som + mensagem)** e **notificação no celular** (com o sino ligado) quando chega pedido "Tem encomenda" para decidir ou envio parcial com encomenda.
 
 ### 7.1 Decidir um "Tem encomenda"
@@ -336,7 +338,7 @@ Botão **Importar nota fiscal**: escolha o arquivo **XML** da NF-e (recomendado)
   - **Salvar e liberar para a separação**: abre um resumo com cada pré-venda, as peças de cada item e o que acontece com ela (**Encomenda completa** → separa e guarda na colmeia ou finaliza na mesa; **Parte da encomenda** → separa o que chegou e guarda na colmeia), mais o total para o estoque. Ao confirmar em **Liberar N pré-vendas**, a nota é salva e as pré-vendas entram na fila da separação **quando o Recebimento conferir a nota** (ou na hora, se ela já foi conferida).
 - **Tutorial** (botão ao lado de Voltar): passo a passo da amarração em 8 passos; cada parte da tela fica em destaque com um balão explicando o que fazer (Próximo / Voltar / Sair; no computador também as setas e Esc). Só abre quando a pessoa toca no botão.
 - Aceita **faturamento parcial** (a nota traz só parte dos itens). Situações: "Faturado em parte", "Faturado · a caminho".
-- **Aba Notas fiscais** (em Compras): lista as notas importadas com a amarração e a situação (Aguardando chegada, Recebida, Recebida com divergência). O botão **Amarrar / Ver amarração / Continuar amarração** reabre a nota.
+- **Aba Notas fiscais** (em Compras): lista as notas importadas com a amarração e a situação (Aguardando chegada, Recebida, Recebida com divergência). Toque na linha da nota (ou na setinha ao lado do número) para **abrir os itens da nota** ali mesmo: código (e o código do fornecedor), descrição, quantidade da nota, quantidade conferida (se já foi recebida; em vermelho quando diverge), as pré-vendas amarradas a cada item e quanto vai para o estoque, com o resumo no topo. Toque de novo para fechar. O botão **Amarrar / Ver amarração / Continuar amarração** reabre a nota.
 - **Amarrar depois do recebimento**: nota já conferida no Recebimento também pode ser amarrada (ou ter a amarração ajustada). Ao salvar, as pré-vendas amarradas já contam como encomenda chegada; se houve divergência, vale a quantidade conferida (o que sobrar vai para o estoque).
 - A nota fica em **Notas a receber** para o Recebimento. Na lista do Recebimento cada nota mostra o fornecedor (com caixas e itens), as **pré-vendas amarradas** e, à direita, a situação (**Aguardando** ou **Em conferência**, com itens conferidos, quantos faltam e caixas contadas).
 
