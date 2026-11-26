@@ -2,7 +2,7 @@
 
 Base de conhecimento do assistente **Lucas**. Descreve como o sistema funciona hoje, tela por tela e passo a passo. Sempre que uma atualização for publicada, este manual é atualizado junto.
 
-Última atualização: 25/11/2026 (envio parcial do Comercial passa pelo desmembramento).
+Última atualização: 26/11/2026 (pedido do e-commerce com encomenda passa por Compras).
 
 ---
 
@@ -213,6 +213,7 @@ Em todos os buscadores (Compras, amarração da nota, Recebimento, Colmeias, Sep
 - A transportadora vem do próprio pedido; o logotipo aparece se estiver cadastrado em **Usuários → Logotipos das transportadoras**.
 - Configuração da integração: **Usuários → Integração Magazord** (Administrador): Importar agora, ver última importação.
 - **Pedido manual**: pedido criado no painel da Magazord pela equipe (não comprado no site nem no marketplace). Aparece na fila de separação com a tag roxa **MANUAL** e o card destacado em roxo (o quadro do cliente na tela de separação também fica roxo). Ao tocar para começar, o sistema pergunta "Iniciar separação de pedido manual?": **Cancelar** volta para a fila sem mexer no pedido; **Continuar** inicia a separação. Pedidos manuais **não entram na Separação em lote**; são separados um a um pela fila.
+- **Pedido do site com falta no estoque (encomenda)**: o Administrador abre **Editar pedido** e muda a situação para **Aguardando decisão de Compras**. O pedido aparece em Compras → **Para decidir** com a tag do site (ver 7.1d).
 
 ---
 
@@ -282,6 +283,14 @@ O card mostra cada item com as colunas **Vendido**, **Encomendar** e **Da loja**
 Depois toque em **Confirmar e encaminhar**. O card também mostra o que o Comercial pediu e se o cliente retira ou está na loja.
 - **Para decidir · Ajuste**: pré-venda já separada que o Comercial ajustou com Tem encomenda. O card mostra só o que entrou de novo (coluna "Novo no ajuste"); digite quanto encomendar, o restante é separado da loja e vira tarefa de ajuste para o separador juntar na colmeia do pedido.
 - **Editar itens** (só Administrador): no card "Para decidir", abre uma janela para mudar a quantidade, excluir item (×) ou adicionar item pelo SKU ou descrição. Ao salvar, o card atualiza e Compras segue decidindo. Fica registrado no histórico do pedido.
+
+### 7.1d Pedido do e-commerce com encomenda (a partir de 26/11/2026)
+Pedido do site/marketplace que tem peça faltando no estoque também passa por Compras. O Administrador muda a situação do pedido para **Aguardando decisão de Compras** (Editar pedido) e ele aparece em **Para decidir** com a tag azul do site.
+- Não tem desmembramento (não existe pré-venda no sistema de vendas): sai sempre **tudo junto**.
+- Compras digita quanto encomendar e confirma. Com parte da loja: **Tudo junto · aguarda na colmeia** — as peças da loja vão para a separação e o separador guarda na colmeia que bipar. Tudo encomenda: **Encomenda total** (não passa pela separação até chegar). Nada a encomendar: volta para a fila da separação.
+- As peças de encomenda aparecem em **Em aberto** e podem ser amarradas ao pedido do fornecedor e à nota, como as pré-vendas.
+- Quando a nota conferida trouxer **toda** a encomenda, o pedido volta para a fila da separação: o separador pega as peças na área de recebimento, busca o que está na colmeia e finaliza na **mesa de expedição** (é envio). Chegada só de parte da encomenda não libera o pedido: ele espera chegar tudo.
+- Mantenha o pedido na situação 5 na Magazord enquanto aguarda: se a situação mudar lá, o pedido sai da fila sozinho quando estiver aguardando separação.
 
 ### 7.1c Tudo junto · remessas na colmeia (a partir de 20/11/2026)
 Vale para toda pré-venda da Venda Consultiva que tem **itens da loja e encomenda** e sai **tudo junto** (envio ou retirada na loja). O envio parcial continua como no 7.1b.

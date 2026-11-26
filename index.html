@@ -2286,7 +2286,7 @@ let PURCHASES = {}, purchCol = null;
 const encItems = o => (o.items||[]).map((it,i)=>({...it, i, qtyEnc:(it.qtyEnc||0)-(it.qtyDec||0)})).filter(x=>x.qtyEnc>0); // qtyDec: aguardando Compras decidir (ajuste)
 const decPend = o => (o.items||[]).some(it=>it.qtyDec>0);
 const encArrived = o => !!o.arrivedAt || (o.mode==="parcial" && o.remessa===2);
-const encOpen = o => !isEco(o) && !["enviado","excluido","analise_compras"].includes(o.status) && encItems(o).length>0 && !encArrived(o);
+const encOpen = o => !["enviado","excluido","analise_compras"].includes(o.status) && encItems(o).length>0 && !encArrived(o);
 const toDecide = o => o.status==="analise_compras" || (decPend(o) && !["enviado","excluido"].includes(o.status));
 const canRelease = o => (o.status==="desmembrar" && o.desmRem) || (o.status==="pronto_envio" && !!o.colmeia && !o.fase2 && !o.arrivedAt && !grpId(o) && o.mode!=="parcial") || o.status==="na_colmeia" || o.status==="encomenda" || o.status==="enc_pendente" || (o.status==="pronto_envio" && o.mode==="parcial" && o.remessa!==2);
 const compraSt = it => it.compra?.st==="chegou" ? "chegou" : nfRecv(it)>=it.qtyEnc && it.qtyEnc>0 ? "chegou" : nfQty(it)>=it.qtyEnc && it.qtyEnc>0 ? "faturado" : nfQty(it)>0 ? "fatparc" : (it.compra?.links||[]).reduce((s,l)=>s+(+l.qty||0),0) >= it.qtyEnc ? "pedido" : (it.compra?.links||[]).length ? "parcial" : "falta";
@@ -2311,11 +2311,11 @@ const COMPRA_LABEL = { falta:["A encomendar","bad"], parcial:["Encomendado em pa
 
 function renderCompras(){
   if(state.nfEdit) return renderNfEdit();
-  const decide = ORDERS.filter(o=>toDecide(o) && !isEco(o)).sort((a,b)=>(urgRank(b)-urgRank(a)) || (a.createdAt||0)-(b.createdAt||0));
+  const decide = ORDERS.filter(o=>toDecide(o)).sort((a,b)=>(urgRank(b)-urgRank(a)) || (a.createdAt||0)-(b.createdAt||0));
   const desm = ORDERS.filter(o=>o.status==="desmembrar").sort((a,b)=>(a.decidedAt||a.createdAt||0)-(b.decidedAt||b.createdAt||0));
   const tab = state.cTab || (decide.length ? "decidir" : desm.length ? "desmembrar" : "abertas");
   const open = ORDERS.filter(encOpen).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
-  const done = ORDERS.filter(o=>!isEco(o) && hasEnc(o) && encArrived(o) && o.status!=="excluido").sort((a,b)=>(b.arrivedAt||0)-(a.arrivedAt||0)).slice(0,60);
+  const done = ORDERS.filter(o=>hasEnc(o) && encArrived(o) && o.status!=="excluido").sort((a,b)=>(b.arrivedAt||0)-(a.arrivedAt||0)).slice(0,60);
   const allIt = open.flatMap(o=>encItems(o).map(x=>({...x, o}))), falta = allIt.filter(x=>compraSt(x)==="falta"||compraSt(x)==="parcial"), aguard = allIt.filter(x=>["pedido","parcial","faturado","fatparc"].includes(compraSt(x))), late = aguard.filter(x=>prazoInfo(x)?.c==="bad");
   const q = (state.cQ||"").trim().toLowerCase();
   const match = o => !q || fz([o.num,o.client,o.seller,...(o.items||[]).map(i=>i.code+" "+i.name)].join(" "), q);
@@ -2413,6 +2413,7 @@ function decidePlanText(pl, o){
   if(pl.kind==="encomenda") return `<b>Encomenda total</b>: encomendar ${pl.enc} pç · não passa pela separação nem usa colmeia.`;
   if(pl.kind==="total") return `<b>Nada a encomendar</b>: vai para a separação como envio total (${pl.pick} pç).`;
   if(pl.kind==="aguarda" && !isEco(o)) return `<b>Tudo junto · desmembrar</b>: ${pl.refsPick} ref. · ${pl.pick} pç da loja vão numa <b>pré-venda nova</b> (1ª remessa), que é separada e guardada na colmeia · a #${esc(o.num)} fica com a encomenda (${pl.enc} pç). A cada chegada da encomenda, desmembre outra remessa; a última fica na #${esc(o.num)}. Sai tudo junto quando chegar tudo. Depois de confirmar, importe o PDF da pré-venda nova na aba <b>Desmembrar</b>.`;
+  if(pl.kind==="aguarda" && isEco(o)) return `<b>Tudo junto · aguarda na colmeia</b>: ${pl.refsPick} ref. · ${pl.pick} pç da loja vão para a separação e o separador guarda na colmeia que bipar · encomendar ${pl.enc} pç. Quando a encomenda chegar toda, o pedido volta para a separação, junta o que está na colmeia e vai para a mesa de expedição.`;
   return `<b>Separar o que tem na loja</b>: ${pl.refsPick} ref. · ${pl.pick} pç vão para a separação e o separador guarda na colmeia que bipar · encomendar ${pl.enc} pç.`;
 }
 /* Ajuste de pedido já separado enviado como "Tem encomenda": Compras decide só os itens novos / o aumento */
@@ -2461,7 +2462,7 @@ function decideCard(o){
   state.dq ||= {}; const qs = state.dq[o.id] ||= Object.fromEntries(o.items.map((it,i)=>[i, it.qtyEnc||0]));
   const pl=decidePlan(o, qs), sug = MODES[o.modeCom||o.mode]?.t || "";
   return `<article class="cpcard dec" data-dec="${o.id}">
-    <div class="cphead"><b class="mono">#${esc(o.num)}</b><span class="chip urg">Para decidir</span><span class="muted-s">Comercial pediu: ${esc(sug)}</span>${o.naLoja?`<span class="retirabar">CLIENTE NA LOJA</span>`:o.retira?`<span class="retirabar rb-green">RETIRA NA LOJA</span>`:""}</div>
+    <div class="cphead"><b class="mono">#${esc(o.num)}</b><span class="chip urg">Para decidir</span>${isEco(o)?`<span class="chip eco">${esc(o.origem||"Site")} · e-commerce</span>`:`<span class="muted-s">Comercial pediu: ${esc(sug)}</span>`}${o.naLoja?`<span class="retirabar">CLIENTE NA LOJA</span>`:o.retira?`<span class="retirabar rb-green">RETIRA NA LOJA</span>`:""}</div>
     <div class="cpcli">${esc(o.client)}<small>${[o.seller?"Vendedor "+esc(o.seller):"", o.date?esc(o.date):"", transpOf(o)?esc(transpOf(o)):"", "integrada há "+since(o.createdAt)].filter(Boolean).join(" · ")}</small></div>
     <div class="cptwrap"><table class="cptab cpdec"><thead><tr><th>Código</th><th>Item</th><th class="r">Vendido</th><th class="r">Encomendar</th><th class="r">Da loja</th><th>Previsão</th></tr></thead><tbody>
     ${o.items.map((it,i)=>{ const e=pl.items[i].qtyEnc; return `<tr><td class="mono">${esc(it.code)}</td><td>${esc(it.name)}${PRODUCTS[it.code]?.loc?`<div class="muted-s">${esc(fullLoc(PRODUCTS[it.code].loc))}</div>`:""}</td><td class="r tnum">${it.qty}</td>
@@ -2689,7 +2690,7 @@ function compraCard(o, closed){
   const pick=(o.items||[]).filter(it=>it.qty-(it.qtyEnc||0)>0);
   const where = o.colmeia ? `<span class="cpcm" title="Colmeia">Colmeia <b>${esc(o.colmeia.slice(3))}</b></span>` : "";
   return `<article class="cpcard">
-    <div class="cphead"><b class="mono">#${esc(o.num)}</b>${envTag(o)}<span class="chip ${k.c}">${k.t}</span>${where}${o.naLoja?`<span class="retirabar">CLIENTE NA LOJA</span>`:o.retira?`<span class="retirabar rb-green">RETIRA NA LOJA</span>`:""}</div>
+    <div class="cphead"><b class="mono">#${esc(o.num)}</b>${envTag(o)}${isEco(o)?`<span class="chip eco">${esc(o.origem||"Site")} · e-commerce</span>`:""}<span class="chip ${k.c}">${k.t}</span>${where}${o.naLoja?`<span class="retirabar">CLIENTE NA LOJA</span>`:o.retira?`<span class="retirabar rb-green">RETIRA NA LOJA</span>`:""}</div>
     <div class="cpcli">${esc(o.client)}<small>${[o.seller?"Vendedor "+esc(o.seller):"", o.date?esc(o.date):"", transpOf(o)?esc(transpOf(o)):""].filter(Boolean).join(" · ")}</small></div>
     <div class="cpnote">${esc(k.d)}${pick.length?` · ${pick.length} ref. de pronta entrega`:""}</div>
     ${(()=>{ // todos os itens da pré-venda: encomenda primeiro; mais de 2 produtos → "ver todos"
@@ -2826,7 +2827,7 @@ function openPurchaseImport(){
   const ov=document.createElement("div"); ov.className="modal";
   const close=()=>{ ov.remove(); render(); };
   // itens de pré-venda sob encomenda, com quanto ainda falta encomendar
-  const pending = () => ORDERS.filter(o=>encOpen(o) || (toDecide(o) && !isEco(o) && hasEnc(o))).flatMap(o=>encItems(o).map(x=>({o, x, left: x.qtyEnc - compraQty(x) - S.lines.reduce((s,l)=>s+(l.links||[]).filter(k=>k.oid===o.id&&k.i===x.i).reduce((a,k)=>a+(+k.qty||0),0),0)})));
+  const pending = () => ORDERS.filter(o=>encOpen(o) || (toDecide(o) && hasEnc(o))).flatMap(o=>encItems(o).map(x=>({o, x, left: x.qtyEnc - compraQty(x) - S.lines.reduce((s,l)=>s+(l.links||[]).filter(k=>k.oid===o.id&&k.i===x.i).reduce((a,k)=>a+(+k.qty||0),0),0)})));
   // ---- adicionar a pré-venda (mesmo PDF do comercial) para poder vincular ----
   const pvPanelHTML = () => { const V=S.pv, p=V.p;
     return `<div class="pvbox"><div class="pvtop"><b>Adicionar pré-venda</b><button class="lnk" id="pvClose">fechar</button></div>
@@ -3374,7 +3375,7 @@ function renderNfEdit(){
   // peças de encomenda de cada item de pré-venda que ainda não têm nota (tirando o que esta mesma nota já amarrou)
   const otherNf = it => (it.compra?.nf||[]).filter(n=>n.id!==selfId).reduce((t,n)=>t+(+n.qty||0),0);
   const draftUsed = (oid,i) => N.lines.reduce((t,l)=>t+(l.alloc||[]).filter(a=>a.oid===oid && a.i===i).reduce((u,a)=>u+(+a.qty||0),0),0);
-  const encAll = ORDERS.filter(o=>!isEco(o) && hasEnc(o) && !["enviado","excluido"].includes(o.status)).flatMap(o=>encItems(o).map(x=>({o, x, key:o.id+":"+x.i})));
+  const encAll = ORDERS.filter(o=>hasEnc(o) && !["enviado","excluido"].includes(o.status)).flatMap(o=>encItems(o).map(x=>({o, x, key:o.id+":"+x.i})));
   const encLeft = c => Math.max(0, c.x.qtyEnc - otherNf(c.o.items[c.x.i]||{}) - draftUsed(c.o.id, c.x.i));
   const cands = l => { const byPed=nfCandidates(l, N.forn).map(c=>c.o.id+":"+c.i);
     return encAll.map(c=>({c, sc: (byPed.includes(c.key)?100:0) + (l.sku && l.sku===c.x.code ? 50 : 0) + rcSim(l.name, c.x.name)})).filter(x=>x.sc>=100 || x.sc>=50 || x.sc>=3).sort((a,b)=>b.sc-a.sc); };
