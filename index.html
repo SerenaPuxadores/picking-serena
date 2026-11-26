@@ -711,7 +711,7 @@ details.cpcard summary{display:flex;justify-content:space-between;align-items:ce
 .nbchev{width:20px;height:20px;fill:none;stroke:var(--muted);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}.nbrow.on .nbchev{stroke:var(--route)}
 .nbpill{font-size:12px;font-weight:600;border-radius:99px;padding:2px 9px;white-space:nowrap}.nbpill.sug{background:color-mix(in srgb,var(--route) 14%,var(--surface));color:var(--route)}
 .nbpill.ok{background:var(--ok-soft);color:var(--ok)}.nbpill.stk{background:var(--bg);color:var(--muted);border:1px solid var(--line)}.nbpill.war{background:var(--accent-soft);color:var(--accent-ink)}.nbpill.bad{background:var(--bad-soft);color:var(--bad)}
-.nbpanel{position:sticky;top:12px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px 18px;min-height:380px;box-shadow:0 1px 2px rgba(16,24,32,.05),0 4px 14px rgba(16,24,32,.05);animation:nbslide .28s cubic-bezier(.2,.8,.2,1)}
+.nbpanel{position:sticky;top:12px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px 18px;min-height:380px;box-shadow:0 1px 2px rgba(16,24,32,.05),0 4px 14px rgba(16,24,32,.05)}.nbpanel.nbanim{animation:nbslide .28s cubic-bezier(.2,.8,.2,1)}
 .nbempty{min-height:340px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;color:var(--muted)}.nbempty svg{width:110px;margin-bottom:6px}.nbempty b{font:700 20px var(--display);color:var(--ink)}
 .nbph h2{margin:2px 0 10px;font:700 24px/1.1 var(--display)}.nbph .lnk{margin-bottom:8px}
 .nbwarn{background:var(--accent-soft);color:var(--accent-ink);border-radius:10px;padding:8px 11px;font-size:13.5px;margin-bottom:10px}.nbwarn.bad{background:var(--bad-soft);color:var(--bad)}
@@ -737,8 +737,8 @@ details.cpcard summary{display:flex;justify-content:space-between;align-items:ce
 .nbothers{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px}
 .nboc{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:7px;padding:2px 8px;color:var(--muted);background:var(--surface);white-space:nowrap;font:inherit}
 .nboc.here{color:var(--route);font-weight:600;border-color:color-mix(in srgb,var(--route) 45%,var(--line));cursor:pointer}.nboc.here:hover{background:color-mix(in srgb,var(--route) 10%,var(--surface))}.nboc.okd{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,var(--line))}
-.nbscrim{position:fixed;inset:0;background:rgba(10,15,20,.32);z-index:40;animation:nbfade .2s}
-.nbsheet{position:fixed;top:0;right:0;bottom:0;width:min(480px,100vw);background:var(--surface);z-index:41;box-shadow:-8px 0 30px rgba(0,0,0,.18);display:flex;flex-direction:column;animation:nbsheet .3s cubic-bezier(.2,.8,.2,1)}
+.nbscrim{position:fixed;inset:0;background:rgba(10,15,20,.32);z-index:40}.nbscrim.nbanim{animation:nbfade .2s}
+.nbsheet{position:fixed;top:0;right:0;bottom:0;width:min(480px,100vw);background:var(--surface);z-index:41;box-shadow:-8px 0 30px rgba(0,0,0,.18);display:flex;flex-direction:column}.nbsheet.nbanim{animation:nbsheet .3s cubic-bezier(.2,.8,.2,1)}
 .nbsheet header{padding:18px 20px 14px;border-bottom:1px solid var(--line)}.nbsheet header .r{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .nbsheet h2{margin:0;font:700 26px/1.1 var(--display);display:flex;align-items:center;gap:9px}.nbsheet h2 i{width:13px;height:13px;border-radius:50%;background:var(--c)}
 .nbclose{border:0;background:var(--bg);width:40px;height:40px;border-radius:10px;font-size:20px;color:var(--ink);cursor:pointer}
@@ -3439,7 +3439,7 @@ function nfTour(){
    pré-vendas amarradas e as sugestões. A amarração é sempre do ITEM da pré-venda (uma pré-venda pode ter encomenda de vários fornecedores). ---- */
 const NB_COLORS=["#2A5BC8","#1D845A","#B5477A","#7A5CC2","#C2701F","#11808C","#8A6D12","#B23A3A","#3F7F2A","#5A62C8"];
 const nbColor = o => { const s=String(o?.num||o?.id||""); let h=0; for(const ch of s) h=(h*31+ch.charCodeAt(0))>>>0; return NB_COLORS[h%NB_COLORS.length]; };
-const nbWcache={};
+const nbWcache={}; let nbAnimP=false, nbAnimS=false; // animação de entrada só quando a pessoa abre (não quando os dados chegam e a tela é redesenhada)
 function nbAnimate(before){
   if(matchMedia("(prefers-reduced-motion: reduce)").matches) before={};
   document.querySelectorAll("#app [data-fk]").forEach(e=>{ const b=before[e.dataset.fk]; if(!b){ if(before.__any) e.classList.add("nbnew"); return; }
@@ -3547,7 +3547,7 @@ function renderNfEdit(){
     const enc=encItems(o), done=enc.filter(x=>leftOf(o,x.i)===0).length, groups={};
     (o.items||[]).forEach((it,i)=>{ const x=enc.find(y=>y.i===i); const f = !x ? "Da loja · sem encomenda" : ((it.compra?.links||[]).map(k=>PURCHASES[k.pid]?.forn).find(Boolean) || "Sem pedido ao fornecedor"); (groups[f] ||= []).push({it,i,x}); });
     const canAll = enc.some(x=>leftOf(o,x.i)>0 && lineFor(x)>=0);
-    return `<div class="nbscrim" data-nashut></div><aside class="nbsheet" role="dialog" aria-modal="true" aria-label="Pré-venda ${esc(o.num)}" style="--c:${nbColor(o)}">
+    return `<div class="nbscrim ${nbAnimS?"nbanim":""}" data-nashut></div><aside class="nbsheet ${nbAnimS?"nbanim":""}" role="dialog" aria-modal="true" aria-label="Pré-venda ${esc(o.num)}" style="--c:${nbColor(o)}">
       <header><div class="r"><div><h2><i></i>Pré-venda #${esc(o.num)}</h2><div class="muted-s">${esc(o.client||"")}${o.seller?` · vendedor(a) ${esc(o.seller)}`:""} · ${diasTxt(o)}</div></div><button type="button" class="nbclose" data-nashut aria-label="Fechar">×</button></div>
         <div class="nbpg"><i data-nbk="sh${esc(o.id)}" data-nbw="${enc.length?Math.round(done*100/enc.length):100}%" style="width:${enc.length?Math.round(done*100/enc.length):100}%"></i></div>
         <div class="muted-s"><b>${done} de ${enc.length}</b> itens de encomenda com nota · ${destChip(o)}</div>
@@ -3577,10 +3577,10 @@ function renderNfEdit(){
     </section>
     <div class="nbtools"><input class="tinput" id="naQL" placeholder="Buscar item da nota: código ou descrição" value="${esc(E.qL)}" autocomplete="off">
       <div class="seg nafil">${[["estq","Para estoque"],["amar","Amarrados"]].map(([k,t])=>`<button data-nafil="${k}" aria-pressed="${E.fL===k}">${t} <span class="n">${cnt[k]}</span></button>`).join("")}</div></div>
-    <div class="nbwork" data-pane="${E.pane}"><div class="nblist" id="naL">${listHtml}</div><section class="nbpanel" id="naP">${panel()}</section></div>
+    <div class="nbwork" data-pane="${E.pane}"><div class="nblist" id="naL">${listHtml}</div><section class="nbpanel ${nbAnimP?"nbanim":""}" id="naP">${panel()}</section></div>
     ${E.dirty?`<div class="nadirty"><span>Alterações ainda não salvas</span><span class="nbdb"><button class="btn ghost" id="naDraft2">Salvar e continuar depois</button><button class="btn primary" id="naSave2">Liberar para a separação</button></span></div>`:""}
     ${sheet()}`;
-  bindNav();
+  bindNav(); nbAnimP=false; nbAnimS=false;
   const g=id=>document.getElementById(id);
   const touch=()=>{ E.dirty=true; E.err=""; E.auto=0; };
   const snap=()=>{ E.undo.push(JSON.stringify(N.lines.map(l=>l.alloc||[]))); if(E.undo.length>40) E.undo.shift(); };
@@ -3596,7 +3596,7 @@ function renderNfEdit(){
     return qq; }
   const encBy = key => encAll.find(c=>c.key===key);
   // lista
-  app.querySelectorAll("[data-nal]").forEach(b=>b.onclick=()=>{ const j=+b.dataset.nal; if(E.sel!==j){ E.sel=j; E.qR=""; resetPage("naR"); } E.pane="pvs"; E.sheet=null; redraw(); if(mob) g("naP")?.scrollIntoView({block:"start"}); });
+  app.querySelectorAll("[data-nal]").forEach(b=>b.onclick=()=>{ const j=+b.dataset.nal; if(E.sel!==j){ E.sel=j; E.qR=""; resetPage("naR"); nbAnimP=true; } E.pane="pvs"; E.sheet=null; redraw(); if(mob) g("naP")?.scrollIntoView({block:"start"}); });
   app.querySelectorAll("[data-nafil]").forEach(b=>b.onclick=()=>{ E.fL=b.dataset.nafil; resetPage("naL"); redraw(); });
   app.querySelectorAll("[data-napane]").forEach(b=>b.onclick=()=>{ E.pane=b.dataset.napane; redraw(); });
   const typed=(id, key, page)=>{ const el=g(id); if(!el) return; el.oninput=()=>{ E[key]=el.value; resetPage(page); clearTimeout(el._t); el._t=setTimeout(()=>{ const pos=el.selectionStart; render(); const n=g(id); if(n){ n.focus(); try{ n.setSelectionRange(pos,pos); }catch(e){} } },160); }; };
@@ -3612,9 +3612,9 @@ function renderNfEdit(){
   app.querySelectorAll("[data-naqi]").forEach(i=>i.onchange=()=>{ const a=selL.alloc[+i.dataset.naqi]; const c=encBy(a.oid+":"+a.i), lf=c?encLeft(c):0;
     const nv=Math.max(1, Math.min(Math.round(+i.value||1), a.qty+Math.max(0,free(selL)), a.qty+lf)); snap(); a.qty=nv; touch(); redraw(); });
   app.querySelectorAll("[data-narm]").forEach(b=>b.onclick=()=>{ const a=selL.alloc[+b.dataset.narm]; const o=ORDERS.find(x=>x.id===a.oid); snap(); selL.alloc.splice(+b.dataset.narm,1); touch(); redraw(); nbUndoToast(`#${o?.num||"?"} tirada deste item · as peças voltam para o estoque`, true); });
-  app.querySelectorAll("[data-najump]").forEach(b=>b.onclick=()=>{ E.sel=+b.dataset.najump; E.qR=""; resetPage("naR"); E.sheet=null; E.pane="pvs";
+  app.querySelectorAll("[data-najump]").forEach(b=>b.onclick=()=>{ E.sel=+b.dataset.najump; E.qR=""; nbAnimP=true; resetPage("naR"); E.sheet=null; E.pane="pvs";
     const k=rows.findIndex(r=>r.j===E.sel); if(k<0){ E.fL = free(N.lines[E.sel])>0 ? "estq" : "amar"; E.qL=""; } redraw(); });
-  app.querySelectorAll("[data-nasheet]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); E.sheet=b.dataset.nasheet; render(); nbAnimate({}); setTimeout(()=>document.querySelector(".nbsheet .nbclose")?.focus(),40); });
+  app.querySelectorAll("[data-nasheet]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); E.sheet=b.dataset.nasheet; nbAnimS=true; render(); nbAnimate({}); setTimeout(()=>document.querySelector(".nbsheet .nbclose")?.focus(),40); });
   app.querySelectorAll("[data-nashut]").forEach(b=>b.onclick=()=>{ E.sheet=null; render(); });
   app.querySelectorAll("[data-nadest]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); const o=ORDERS.find(x=>x.id===b.dataset.nadest); if(o) openPvDest(o); });
   if(g("naNewPv")) g("naNewPv").onclick=()=>openPvEnc(o=>{ E.qR=o.num; resetPage("naR"); });
@@ -7048,11 +7048,14 @@ function allowedSectors(){ const sep=canSector("expedicao"); return (sep ? ["ges
 async function fillNames(root){
   if(!userCap || !root) return;
   const els=[...root.querySelectorAll("[data-uid]")]; if(!els.length) return;
+  const put=(ps)=>els.forEach(e=>{ const p=ps[e.dataset.uid]; if(!p) return;
+    if(e.tagName==="IMG"){ if(e.getAttribute("src")!==p.avatarUrl) e.src=p.avatarUrl; e.style.background=p.color; }
+    else { const t=(p.isMe ? (p.name||"Você")+" (você)" : p.name) || e.dataset.fallback || "Usuário sem nome visível"; if(e.textContent!==t) e.textContent=t; } });
+  put(PROFILE_CACHE); // já preenche na hora com o que conhecemos: a foto e o nome não "piscam" quando a tela é redesenhada
   const ps = await userCap.profiles([...new Set(els.map(e=>e.dataset.uid))]);
-  els.forEach(e=>{ const p=ps[e.dataset.uid]; if(!p) return;
-    if(e.tagName==="IMG"){ e.src=p.avatarUrl; e.style.background=p.color; }
-    else e.textContent = (p.isMe ? (p.name||"Você")+" (você)" : p.name) || e.dataset.fallback || "Usuário sem nome visível"; });
+  Object.assign(PROFILE_CACHE, ps); put(ps);
 }
+var PROFILE_CACHE = {};
 function userChip(){
   const r=myRole(); if(!r) return "";
   return `<div class="me">${ME.id?`<img class="av" data-uid="${esc(ME.id)}" alt="">`:""}<span><b>${ME.id?`<span data-uid="${esc(ME.id)}" data-fallback="Você"></span>`:"Modo local"}</b><small>${esc(rolesTxt(myRoles()))}${state.viewAs?" (simulação)":""}${window.psLogout?` · <a href="#" class="logout" onclick="event.preventDefault();window.psLogout()">Sair</a>`:""}</small></span></div>`;
