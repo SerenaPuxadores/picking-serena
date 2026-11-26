@@ -3564,7 +3564,7 @@ function renderNfEdit(){
         return `<div class="nbsi">${ic}<span class="t"><b class="mono">${esc(it.code)}</b> · encomenda ${x.qtyEnc} pç<small>${esc(it.name)}</small><small>${txt}</small></span>${act}</div>`; }).join("")}</div>`).join("")}</div></aside>`; };
 
   app.innerHTML = topnav() + `
-    <header class="bar nahdr nbhdr"><div class="grow"><h1>Amarrar nota fiscal</h1><div class="sub">Escolha um item da nota e amarre às pré-vendas que esperam esse produto. O que não for amarrado vai para o estoque.</div></div>
+    <header class="bar nahdr nbhdr"><div class="grow"><h1>Amarrar nota fiscal</h1></div>
       <div class="cpbtns"><button class="btn ghost cpbtn" id="naTour">Tutorial</button><button class="btn ghost cpbtn" id="naBack">Voltar</button><button class="btn ghost cpbtn" id="naDraft">Salvar e continuar depois</button><button class="btn primary cpbtn" id="naSave">Salvar e liberar para a separação</button></div></header>
     <section class="card nahead">
       <div class="hnf nff"><label><span>Fornecedor</span><input class="tinput" id="nfForn" value="${esc(N.forn)}"></label><label><span>Nº da NF</span><input class="tinput" id="nfNum" value="${esc(N.num)}"></label><label><span>Volumes (caixas)</span><input class="tinput" id="nfVols" type="number" min="0" value="${N.vols||""}"></label></div>
