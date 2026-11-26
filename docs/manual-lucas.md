@@ -2,7 +2,7 @@
 
 Base de conhecimento do assistente **Lucas**. Descreve como o sistema funciona hoje, tela por tela e passo a passo. Sempre que uma atualização for publicada, este manual é atualizado junto.
 
-Última atualização: 26/11/2026 (Compras: notas fiscais abrem os itens e selo +25 dias).
+Última atualização: 26/11/2026 (Compras: métricas do setor).
 
 ---
 
@@ -265,6 +265,12 @@ Botões no pedido: **Cliente irá retirar** ou **Enviar**.
 ---
 
 ## 7. Compras · encomendas
+
+**Métricas do setor** (no topo da tela de Compras, atualizam sozinhas): três quadros que contam, sempre em horas, há quanto tempo foi o último evento de cada tarefa:
+- **Sem amarrar nota fiscal**: desde a última vez que uma nota foi salva com amarração nova ou alterada (com qual NF, quando e quem). Embaixo: quantas notas estão sem nenhuma amarração e quantas em rascunho.
+- **Sem desmembrar pré-venda**: desde o último desmembramento (1º envio, 1ª remessa ou remessa nova). Embaixo: quantas aguardam desmembramento.
+- **Sem importar nota fiscal**: desde a última nota fiscal importada.
+Tocar num quadro abre a aba correspondente (Notas fiscais ou Desmembrar).
 
 Aba **Compras**. Abas internas (todas com paginação):
 - **Para decidir**: pré-vendas "Tem encomenda" esperando a decisão de Compras.
