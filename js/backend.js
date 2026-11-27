@@ -74,6 +74,14 @@
     async upload(path, file){ const { error } = await sb.storage.from("showroom").upload(path, file, { contentType:file.type || "video/mp4", upsert:false, cacheControl:"86400" }); if(error) throw new Error(error.message || "Falha no envio"); return sb.storage.from("showroom").getPublicUrl(path).data.publicUrl; },
     async remove(path){ const { error } = await sb.storage.from("showroom").remove([path]); if(error) throw new Error(error.message || "Falha ao apagar"); }
   };
+  /* Pedidos ao fornecedor informados pelo WhatsApp (tabela wa_pedidos, gravada pela função wa-compras) */
+  window.psWa = {
+    async list(){ const { data, error } = await sb.from("wa_pedidos").select("*").neq("status","rascunho").order("id", { ascending:false }).limit(300);
+      if(error) throw new Error(error.message); return data || []; },
+    async update(id, patch){ const { error } = await sb.from("wa_pedidos").update({ ...patch, updated_at:new Date().toISOString() }).eq("id", id); if(error) throw new Error(error.message); },
+    async audio(path){ const { data, error } = await sb.storage.from("wa-audios").createSignedUrl(path, 600); if(error) throw new Error(error.message); return data.signedUrl; },
+    subscribe(cb){ const ch = sb.channel("wa_pedidos").on("postgres_changes", { event:"*", schema:"public", table:"wa_pedidos" }, p => cb(p)).subscribe(); return () => sb.removeChannel(ch); }
+  };
   async function fetchAll(t, cols="id,data"){
     let out = [], from = 0;
     for(;;){

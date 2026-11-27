@@ -3,6 +3,7 @@
 //  POST {action:"test"} -> notificação de teste para o próprio usuário (precisa estar logado)
 //  POST {order:{...}}   -> chamado pelo banco quando entra um pedido para separar (x-push-secret)
 //  POST {compras:{...}} -> chamado pelo banco quando chega uma encomenda para Compras (x-push-secret)
+//  POST {wa:{...}}      -> pedido ao fornecedor confirmado pelo WhatsApp (função wa-compras, x-push-secret)
 import webpush from "npm:web-push@3.6.7";
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 
@@ -83,6 +84,19 @@ Deno.serve(async (req) => {
         title: o.kind === "decidir" ? "Nova encomenda para decidir" : "Nova encomenda · envio parcial",
         body: `#${o.num} · ${o.client}${o.refs ? ` · ${o.refs} ref. sob encomenda` : ""}`,
         tag: `compras-${o.id}`, url: "/#compras",
+      });
+      return json(r);
+    }
+
+    if (body.wa) { // pedido ao fornecedor informado pelo WhatsApp (função wa-compras)
+      if (req.headers.get("x-push-secret") !== await secret("push_webhook")) return json({ error: "não autorizado" }, 401);
+      const w = body.wa;
+      const { data: people } = await sb.from("profiles").select("id,role,roles").eq("active", true);
+      const ids = (people || []).filter((p) => [p.role, ...(p.roles || [])].includes("compras")).map((p) => p.id as string);
+      const r = await sendTo(ids, {
+        title: `Pedido ao fornecedor · ${w.fornecedor || "WhatsApp"}`,
+        body: `${w.nome || "WhatsApp"} confirmou o pedido #${w.id}${w.pecas ? ` · ${w.pecas} pç` : ""}`,
+        tag: `wa-${w.id}`, url: "/#compras",
       });
       return json(r);
     }
