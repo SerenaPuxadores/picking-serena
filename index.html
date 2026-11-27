@@ -1147,7 +1147,7 @@ body.pda .keyhint{display:block}
 .htld{width:12px;height:12px;border-radius:50%;background:var(--surface);border:2px solid var(--muted);flex:none;margin-top:3px;position:relative;z-index:1}
 .htl li.k-start .htld{border-color:var(--route,#2A5BC8);background:var(--route,#2A5BC8)}.htl li.k-ok .htld{border-color:var(--ok);background:var(--ok)}.htl li.k-end .htld{border-color:var(--ok);background:var(--ok);box-shadow:0 0 0 3px var(--ok-soft)}
 .htl li.k-bad .htld{border-color:var(--bad);background:var(--bad)}.htl li.k-warn .htld,.htl li.k-edit .htld{border-color:#6D28D9;background:#6D28D9}
-.htl li>div{display:flex;flex-direction:column;gap:1px;min-width:0;font-size:13px}.htl time{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}.htlt{overflow-wrap:anywhere}.htl small{color:var(--muted);font-size:12px}
+.htl li>div{display:flex;flex-direction:column;gap:1px;min-width:0;font-size:13px}.htl time{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}.htlt{overflow-wrap:anywhere}.htl small{color:var(--muted);font-size:12px}.htl ul.htli{list-style:none;margin:5px 0 3px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;gap:3px}.htl ul.htli li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:0;font-size:12px}.htl ul.htli li::before{display:none}.htl ul.htli li span{overflow-wrap:anywhere;color:var(--muted)}
 @media (prefers-reduced-motion: reduce){.htlbtn .xpchev{transition:none}}
 .hmain{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .htop{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
@@ -3845,7 +3845,7 @@ function applyReceipt(nfIdv, only){
 function startFase2(o, n, parcial){
   const now=Date.now(), slotFor = !parcial && o.mode==="encomenda" && (o.retira||o.naLoja);
   const run=runOf(o), hasRun=!!(run.pickedAt||run.startedAt) || !!(run.storedAt && !(o.etapas||[]).some(e=>e.storedAt===run.storedAt));
-  patchOrder(o.id, { fase2:true, encParcial:!!parcial, ...(o.desmRem?{desmRem:false, remPrevSt:null}:{}), ...(parcial ? {encPrev:{status:o.status, mode:o.mode, remessa:o.remessa||1, run}} : {encPrev:null, ...(hasRun?{etapas:[...(o.etapas||[]), {...run, colmeia:o.colmeia||null}]}:{})}), res1:o.res||null, res:null, status:"aguardando", queuedAt:now, arrivedAt:now, arrivedBy:ME.id||"", nfRecebida: n ? n.num : (o.nfRecebida||""),
+  patchOrder(o.id, { fase2:true, encParcial:!!parcial, ...(o.desmRem?{desmRem:false, remPrevSt:null}:{}), ...(parcial ? {encPrev:{status:o.status, mode:o.mode, remessa:o.remessa||1, run}} : {encPrev:null, ...(hasRun?{etapas:[...(o.etapas||[]), {...run, colmeia:o.colmeia||null, res:o.res||null}]}:{})}), res1:o.res||null, res:null, status:"aguardando", queuedAt:now, arrivedAt:now, arrivedBy:ME.id||"", nfRecebida: n ? n.num : (o.nfRecebida||""),
     tray:"", trayStatus:"", startedAt:null, pickedAt:null, pickedAtAprox:null, atMesaAt:null, ...(slotFor ? {mode:"aguarda"} : {}) });
 }
 
@@ -4121,7 +4121,9 @@ function sepTab(o){ return isSeparated(o) ? "fila" : inHive(o) ? "colmeias" : in
 const ICON_CHEV = `<svg class="xpchev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`;
 /* Linha do tempo do pedido (Separados): junta as datas do fluxo com o histórico registrado */
 function orderTimeline(o){
-  const ev=[], add=(t,txt,by,k)=>{ if(t) ev.push({t:+t, txt, by:by||"", k:k||""}); };
+  const ev=[], add=(t,txt,by,k,its)=>{ if(t) ev.push({t:+t, txt, by:by||"", k:k||"", ...(its&&its.length?{its}:{})}); };
+  const sepIts = r => (Array.isArray(r)?r:[]).map((x,i)=>{ const it=(o.items||[])[i], g=+x?.got||0; return it && g>0 ? {code:it.code, name:it.name||"", qty:g} : null; }).filter(Boolean); // produtos coletados (res da separação)
+  const lastFull = (o.etapas||[]).map(e=>!e.parcial).lastIndexOf(true);
   const how = x => x==="retirou" ? "Retirado pelo cliente" : x==="entregue" ? "Entregue ao cliente" : "Enviado";
   add(o.createdAt, isEco(o) ? `Pedido importado da Magazord · ${o.origem||"Site"}${isManual(o)?" · manual":""}` : (o.hiveManual ? "Pré-venda cadastrada direto na colmeia" : "Pré-venda integrada pelo Comercial"), o.createdBy, "start");
   if(o.decidedAt) add(o.decidedAt, `Compras decidiu · ${MODES[o.mode]?.t||o.mode}`, o.decidedBy);
@@ -4129,18 +4131,19 @@ function orderTimeline(o){
   if(o.startedAt) add(o.startedAt, "Separação iniciada", o.startedBy);
   (o.bipErr||[]).forEach(e=>add(e.at, `Bipagem incorreta · item ${e.cod}: ${e.txt}`, e.by, "bad"));
   (o.libs||[]).forEach(e=>add(e.at, `Liberado com senha do gestor · item ${e.cod}: OK sem ler o EAN (código bipado: ${e.v})`, e.by, "warn"));
-  if(o.pickedAt && o.conferidoLocal) add(o.pickedAt, "Conferido no local, peça por peça (cliente na loja)", o.pickedBy, "ok");
-  else if(o.pickedAt && o.pickedAtAprox) add(o.pickedAt, "Separação concluída e finalizada na mesa · antes desta hora (registro original perdido)", o.pickedBy, "ok");
-  else if(o.pickedAt) add(o.pickedAt, `Separação concluída${o.startedAt&&o.pickedAt>o.startedAt?` · picking ${fmtDur(o.pickedAt-o.startedAt).replace(/ \d+s$/,"")}`:""}`, o.pickedBy, "ok");
+  const its0 = sepIts(o.res);
+  if(o.pickedAt && o.conferidoLocal) add(o.pickedAt, "Conferido no local, peça por peça (cliente na loja)", o.pickedBy, "ok", its0);
+  else if(o.pickedAt && o.pickedAtAprox) add(o.pickedAt, "Separação concluída e finalizada na mesa · antes desta hora (registro original perdido)", o.pickedBy, "ok", its0);
+  else if(o.pickedAt) add(o.pickedAt, `Separação concluída${o.startedAt&&o.pickedAt>o.startedAt?` · picking ${fmtDur(o.pickedAt-o.startedAt).replace(/ \d+s$/,"")}`:""}`, o.pickedBy, "ok", its0);
   if(o.atMesaAt && o.atMesaAt!==o.pickedAt) add(o.atMesaAt, "Na mesa de expedição");
   if(o.storedAt && !(o.etapas||[]).some(e=>e.storedAt===o.storedAt)) add(o.storedAt, `Guardado na colmeia${o.colmeia?" "+o.colmeia.slice(3):""}`);
   if(o.arrivedAt) add(o.arrivedAt, "Encomenda chegou · volta para a separação", o.arrivedBy, "ok");
   if(o.sentAt1) add(o.sentAt1, `1º envio · ${how(o.saida1)}`, o.saida1By, "ok");
   if(o.sentAt) add(o.sentAt, how(o.saida), o.saidaBy, "end");
-  let nSep=0; (o.etapas||[]).forEach(e=>{ const p = e.parcial ? `Parte da encomenda${e.nfRecebida?" (NF "+e.nfRecebida+")":""}` : `${++nSep}ª separação`;
+  let nSep=0; (o.etapas||[]).forEach((e,k)=>{ const p = e.parcial ? `Parte da encomenda${e.nfRecebida?" (NF "+e.nfRecebida+")":""}` : `${++nSep}ª separação`;
     if(e.parcial && e.arrivedAt) add(e.arrivedAt, `${p} · chegou`, "", "ok");
     add(e.startedAt, `${p} · separação iniciada`, e.startedBy);
-    add(e.pickedAt, `${p} · separação concluída${e.pickedAtAprox?" antes desta hora (registro original perdido)":""}${e.pecas?` · ${e.pecas} pç`:""}`, e.pickedBy, "ok");
+    add(e.pickedAt, `${p} · separação concluída${e.pickedAtAprox?" antes desta hora (registro original perdido)":""}${e.pecas?` · ${e.pecas} pç`:""}`, e.pickedBy, "ok", sepIts(e.res || (k===lastFull && o.fase2 ? o.res1 : null)));
     if(e.atMesaAt && e.atMesaAt!==e.pickedAt) add(e.atMesaAt, `${p} · na mesa${e.tray?" "+e.tray:""}`);
     add(e.storedAt, `${p} · guardado na colmeia${e.colmeia?" "+e.colmeia.slice(3):""}`); });
   if(o.deletedAt) add(o.deletedAt, `Excluído${o.deleteReason?" · "+o.deleteReason:""}`, o.deletedBy, "bad");
@@ -4152,7 +4155,7 @@ function timelineHTML(o){
   const ev=orderTimeline(o), uname=id=>id && (USERS[id]?.name||USERS[id]?.login) || "";
   if(!ev.length) return `<div class="muted-s">Sem registros para este pedido.</div>`;
   const dt=t=>new Date(t).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
-  return `<ol class="htl">${ev.map(e=>`<li class="${e.k?"k-"+e.k:""}"><span class="htld" aria-hidden="true"></span><div><time datetime="${new Date(e.t).toISOString()}">${dt(e.t)}</time><span class="htlt">${esc(e.txt)}</span>${uname(e.by)?`<small>por ${esc(uname(e.by))}</small>`:""}</div></li>`).join("")}</ol>`;
+  return `<ol class="htl">${ev.map(e=>`<li class="${e.k?"k-"+e.k:""}"><span class="htld" aria-hidden="true"></span><div><time datetime="${new Date(e.t).toISOString()}">${dt(e.t)}</time><span class="htlt">${esc(e.txt)}</span>${e.its?`<ul class="htli">${e.its.map(x=>`<li><b class="mono">${esc(x.code)}</b><span>${esc(x.name)}</span><b class="tnum">${x.qty} pç</b></li>`).join("")}</ul>`:""}${uname(e.by)?`<small>por ${esc(uname(e.by))}</small>`:""}</div></li>`).join("")}</ol>`;
 }
 /* Itens bipados do pedido: o que foi coletado, quanto, onde, quando e por quem (fica no histórico) */
 function bipItemsHTML(o){
@@ -5538,7 +5541,7 @@ function finishStore(o){
     const r=res(o), pl=pickList(o), now=Date.now(), P=o.encPrev||{}, waitSt = ["encomenda","enc_pendente","na_colmeia","aguardando","separando"].includes(P.status||"") ? "na_colmeia" : (P.status||"na_colmeia");
     const got=pl.reduce((t,x)=>t+(+r[x.i]?.got||0),0);
     patchItems(o.id, items=>pl.forEach(x=>{ const g=+r[x.i]?.got||0; if(g>0 && items[x.i]) items[x.i].encStored=(+items[x.i].encStored||0)+g; }));
-    const etapa={startedAt:o.startedAt||null, startedBy:o.startedBy||"", pickedAt:o.pickedAt||null, pickedBy:o.pickedBy||"", atMesaAt:o.atMesaAt||null, storedAt:now, colmeia:o.colmeia||null, arrivedAt:o.arrivedAt||null, nfRecebida:o.nfRecebida||"", parcial:true, pecas:got};
+    const etapa={startedAt:o.startedAt||null, startedBy:o.startedBy||"", pickedAt:o.pickedAt||null, pickedBy:o.pickedBy||"", atMesaAt:o.atMesaAt||null, storedAt:now, colmeia:o.colmeia||null, arrivedAt:o.arrivedAt||null, nfRecebida:o.nfRecebida||"", parcial:true, pecas:got, res:o.res||null};
     const prevRun = P.run || {};
     patchOrder(o.id, {fase2:false, encParcial:false, encPrev:null, status:waitSt, ...(waitSt==="na_colmeia"?{mode:"aguarda"}:{mode:P.mode||o.mode, remessa:P.remessa||1}), res:o.res1||null, res1:null,
       ...prevRun, storedAt:now, etapas:[...(o.etapas||[]), etapa], hist:[...(o.hist||[]), {t:now, by:ME.id||"", ev:`Parte da encomenda guardada na colmeia ${(o.colmeia||"").slice(3)} (${got} pç) · aguardando o restante`}]});
