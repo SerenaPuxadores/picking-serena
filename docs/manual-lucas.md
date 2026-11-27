@@ -2,7 +2,7 @@
 
 Base de conhecimento do assistente **Lucas**. Descreve como o sistema funciona hoje, tela por tela e passo a passo. Sempre que uma atualização for publicada, este manual é atualizado junto.
 
-Última atualização: 26/11/2026 (Atividade: eventos de Compras).
+Última atualização: 26/11/2026 (Compras: pedidos ao fornecedor pelo WhatsApp e planilha das encomendas).
 
 ---
 
@@ -277,6 +277,7 @@ Aba **Compras**. Abas internas (todas com paginação):
 - **Em aberto**: pedidos com itens sob encomenda ainda não encomendados por completo.
 - **Aguardando chegada**: itens já encomendados, com prazo (no prazo / atrasado X dias).
 - **Pedidos ao fornecedor**: pedidos de compra importados.
+- **WhatsApp**: pedidos ao fornecedor informados pelo WhatsApp (ver 7.6).
 - **Concluídas**: encomendas que já chegaram.
 
 **Selo +25 dias**: pré-venda cuja encomenda ainda não chegou e que já passou de **25 dias corridos desde a data da pré-venda** ganha o selo vermelho **"+25 dias · N dias sem chegar"** nos cards de **Em aberto** e nas linhas de **Aguardando chegada**. A aba **Em aberto** mostra quantas estão assim (ex.: "3 +25d"). É só um aviso para cobrar o fornecedor: não muda nada no pedido.
@@ -365,6 +366,15 @@ No card: **Editar pedido · retirar da colmeia X** (permissão "devolver"). No c
 No fim, o pedido volta para **Para decidir** e a colmeia fica livre.
 
 ---
+
+### 7.6 Pedidos ao fornecedor pelo WhatsApp
+Quem faz o pedido ao fornecedor (ex.: o José) pode avisar Compras pelo **WhatsApp**, mandando **áudio ou texto** para o número da Serena (no teste, a conversa consigo mesmo no WhatsApp do Administrador, sempre começando com **"Serena"**). Ex.: "Serena, fiz um pedido de 5 Oeiras 128 dourado na Torralba".
+- O assistente do WhatsApp entende o pedido, procura cada item no cadastro de produtos (SKU) e, se faltar algo (fornecedor, quantidade, qual tamanho), **pergunta pelo próprio WhatsApp**. No fim manda o resumo e pede **"sim"** para lançar. As respostas do assistente começam com 🤖. Durante a conversa (30 minutos) não precisa repetir "Serena".
+- Ao confirmar, o pedido aparece em **Compras → WhatsApp**, com **aviso no sistema (som + mensagem)** e **notificação no celular** para Compras.
+- **Aba WhatsApp** (Compras, Supervisor e Administrador): filtros **A lançar · Lançados · Todos** e busca por fornecedor, item ou quem lançou. Cada card (WA-número) mostra fornecedor, quem lançou e quando, previsão (se foi falada), os itens com SKU e quantidade e **Ver a conversa** (todas as mensagens; áudio com o botão **Ouvir o áudio**). Serve de registro para conferir se o pedido foi mesmo feito.
+- Depois de importar o pedido do fornecedor (**Importar pedido do fornecedor**, 7.2) e relacionar às pré-vendas, toque em **Marcar como lançado** (vai para Lançados, com quem e quando; **Desfazer** volta). **Cancelar** (toque duas vezes) tira o pedido da lista; **Reabrir** desfaz.
+- **Planilha das encomendas pelo WhatsApp**: peça, por exemplo, "Serena, me manda a planilha das encomendas em aberto" (dá para pedir só de um fornecedor, só o que falta encomendar, só o que já foi encomendado ou só os atrasados). O assistente envia um arquivo **Excel** com as pré-vendas aguardando encomenda: pré-venda, data, dias, cliente, vendedor, código, item, marca, quantidade de encomenda e já pedida, situação (A encomendar, Encomendado, Faturado…), fornecedor e nº do pedido, previsão e prazo. Uma segunda aba lista os pedidos do WhatsApp ainda a lançar.
+- Outras conversas do WhatsApp são ignoradas e não ficam gravadas.
 
 ## 8. Recebimento (Estoque / Compras)
 
