@@ -1147,7 +1147,7 @@ body.pda .keyhint{display:block}
 .htld{width:12px;height:12px;border-radius:50%;background:var(--surface);border:2px solid var(--muted);flex:none;margin-top:3px;position:relative;z-index:1}
 .htl li.k-start .htld{border-color:var(--route,#2A5BC8);background:var(--route,#2A5BC8)}.htl li.k-ok .htld{border-color:var(--ok);background:var(--ok)}.htl li.k-end .htld{border-color:var(--ok);background:var(--ok);box-shadow:0 0 0 3px var(--ok-soft)}
 .htl li.k-bad .htld{border-color:var(--bad);background:var(--bad)}.htl li.k-warn .htld,.htl li.k-edit .htld{border-color:#6D28D9;background:#6D28D9}
-.htl li>div{display:flex;flex-direction:column;gap:1px;min-width:0;font-size:13px}.htl time{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}.htlt{overflow-wrap:anywhere}.htl small{color:var(--muted);font-size:12px}.htl ul.htli{list-style:none;margin:5px 0 3px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;gap:3px}.htl ul.htli li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:0;font-size:12px}.htl ul.htli li::before{display:none}.htl ul.htli li span{overflow-wrap:anywhere;color:var(--muted)}
+.htl li>div{display:flex;flex-direction:column;gap:1px;min-width:0;font-size:13px}.htl time{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}.htlt{overflow-wrap:anywhere}.htl small{color:var(--muted);font-size:12px}.cmpecas{display:flex;flex-direction:column;gap:4px;margin:10px 0;padding:8px 12px;border:1px solid var(--line);border-radius:10px;text-align:left}.cmpecas>div{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:baseline;font-size:14px}.cmpecas span{color:var(--muted);overflow-wrap:anywhere}.htl ul.htli{list-style:none;margin:5px 0 3px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;gap:3px}.htl ul.htli li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:0;font-size:12px}.htl ul.htli li::before{display:none}.htl ul.htli li span{overflow-wrap:anywhere;color:var(--muted)}
 @media (prefers-reduced-motion: reduce){.htlbtn .xpchev{transition:none}}
 .hmain{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .htop{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
@@ -5423,7 +5423,7 @@ function renderPick(){
     ${o.fase2 && toHive(o) && !o.encParcial && !juntaDest(o) && !grpId(o) ? `<div class="directbar hivebar">Encomenda chegou · no fim, guarde ${o.colmeia?`na colmeia <b>${esc(o.colmeia.slice(3))}</b>, junto com o que já está lá (ou bipe outra)`:"numa <b>colmeia</b>: você escolhe uma livre ou junta com outra pré-venda"}. O cliente retira lá.</div>` : ""}
     ${o.fase2 && pl.some(x=>x.recMesa) ? `<div class="directbar"><span>Encomenda que chegou: as peças estão na <b>${[...new Set(pl.map(x=>x.recMesa).filter(Boolean))].map(m=>esc(mesaName(m))).join(", ")}</b>, onde o conferente deixou. Busque lá e <b>bipe a etiqueta da mesa</b> para desvincular.</span></div>` : ""}
     ${o.fase2 && o.encParcial ? `<div class="directbar hivebar"><span>Chegou <b>só parte da encomenda</b>. Separe estas peças e <b>guarde na colmeia</b>${o.colmeia?` <b>${esc(o.colmeia.slice(3))}</b>, onde o pedido já está`:""}: o pedido continua aguardando o restante.</span></div>` : ""}
-    ${o.fase2 && !toHive(o) && o.colmeia ? `<div class="directbar hivebar"><span>Este pedido tem peças guardadas na <b>colmeia ${esc(o.colmeia.slice(3))}</b> aguardando a encomenda. Busque lá também e finalize tudo na sua mesa.</span></div>` : ""}
+    ${o.fase2 && !toHive(o) && o.colmeia ? `<div class="directbar hivebar"><span>Este pedido tem peças guardadas na <b>colmeia ${esc(o.colmeia.slice(3))}</b>. Depois da encomenda, busque lá: para finalizar, <b>bipe a etiqueta da colmeia</b>.</span></div>` : ""}
     ${pickDirect(o) ? `<div class="directbar">Conferência no local: bipe <b>cada peça</b> no endereço, coloque na sacola e entregue direto ao vendedor. Não vai para a mesa.</div>` : ""}
     ${adjPending(o) ? `<div class="adjbar" style="margin-top:8px">PRÉ-VENDA AJUSTADA PELO COMERCIAL · as peças que faltam já estão com a quantidade nova. Depois de terminar, o ajuste (${esc(adjSummary(o.adj))}) aparece no topo da fila.</div>` : ""}
     ${state.lote && loteMatch(o) ? `<div class="lotebadge">Lote · ${esc(state.lote.vals.join(" · "))} · ${lotePending().length} restante(s)</div>` : ""}
@@ -5568,6 +5568,39 @@ function finishDock(o){
   patchOrder(o.id, {status:"pronto_envio", remessa:1, pickedAt:Date.now(), res:res(o)});
   state.view="done"; render(); scrollTo(0,0);
 }
+/* encomenda chegou e o pedido tem peças guardadas na colmeia: buscar lá e bipar a etiqueta antes de finalizar */
+const cmPecas = o => { const e=(o.etapas||[]).filter(x=>!x.parcial).pop(), r=o.res1||e?.res||[]; const its=(o.items||[]).map((it,i)=>({code:it.code, name:it.name||"", qty:+r[i]?.got||0})).filter(x=>x.qty>0);
+  const parc=(o.items||[]).map(it=>({code:it.code, name:it.name||"", qty:+it.encStored||0})).filter(x=>x.qty>0); // partes da encomenda já guardadas
+  parc.forEach(x=>{ const y=its.find(z=>z.code===x.code); if(y) y.qty+=x.qty; else its.push(x); }); return its; };
+function renderCmOut(){
+  const o = ORDERS.find(x=>x.id===state.oid); if(!o || !o.colmeia){ state.view="orders"; return render(); }
+  const cm=o.colmeia.slice(3), its=cmPecas(o), r=res(o), pl=pickList(o), got=pl.reduce((s,x)=>s+(+r[x.i]?.got||0),0);
+  app.innerHTML = `
+    <header class="bar">${BACK_BTN}<div class="grow"><h1>#${esc(o.num)}</h1><div class="sub">${esc(o.client)}</div></div><span class="timer" title="Tempo de picking">⏱ ${since(o.startedAt)}</span></header>
+    <div class="phases"><div class="phase ok"><span class="n">✓</span>Encomenda coletada · ${got} pç</div><div class="phase on"><span class="n">→</span>Buscar na colmeia ${esc(cm)}</div></div>
+    <div class="product">
+      <div class="eyebrow">Este pedido tem peças guardadas na colmeia</div>
+      <div class="store-code">${esc(o.colmeia)}</div>
+      ${its.length?`<div class="cmpecas">${its.map(x=>`<div><b class="mono">${esc(x.code)}</b><span>${esc(x.name)}</span><b class="tnum">${x.qty} pç</b></div>`).join("")}</div>`:""}
+      <div class="hivebig">${hiveHTML(o.colmeia)}</div>
+      <div class="instr">${ICON_SCAN}<div>Pegue as peças da colmeia <b>${esc(cm)}</b>, junte com a encomenda e <b>bipe a etiqueta da colmeia</b> para finalizar o pedido na mesa.</div></div>
+      <button class="demo" id="sim">Simular leitura da colmeia (demo)</button>
+    </div>`;
+  document.getElementById("back").onclick = ()=>{ state.view="orders"; render(); };
+  document.getElementById("sim").onclick = ()=> handleScan(o.colmeia);
+  setMsg(`Bipe a colmeia ${cm}`,"info");
+  focusScan();
+}
+function scanCmOut(v){
+  const o=ORDERS.find(x=>x.id===state.oid); if(!o || !o.colmeia) return;
+  const hv=hiveCode(v);
+  if(!isHiveCode(hv)){ feedback(false); return setMsg(`Código ${v} não é uma colmeia. Bipe a colmeia ${o.colmeia.slice(3)}.`,"bad"); }
+  if(hv!==o.colmeia){ feedback(false); return setMsg(`Colmeia errada: as peças do #${o.num} estão na ${o.colmeia.slice(3)}.`,"bad"); }
+  feedback(true); const now=Date.now(), its=cmPecas(o);
+  const cmBip={cm:hv, at:now, by:ME.id||""};
+  patchOrder(o.id, {cmBip, hist:[...(o.hist||[]), {t:now, by:ME.id||"", ev:`Colmeia ${hv.slice(3)} bipada pelo separador: peças retiradas${its.length?" ("+its.map(x=>`${x.code} · ${x.qty} pç`).join(", ")+")":""}`}]});
+  o.cmBip=cmBip; setMsg(`Colmeia ${hv.slice(3)} confirmada`,"good"); finishAtMesa(o);
+}
 function renderToMesa(){
   const o = ORDERS.find(x=>x.id===state.oid); if(!o){ state.view="orders"; return render(); }
   const r=res(o), pl=pickList(o), units=pl.reduce((s,x)=>s+(r[x.i].got||0),0), total=pl.reduce((s,x)=>s+x.need,0);
@@ -5603,8 +5636,9 @@ function finishAtMesa(o){
   }
   if(pickDirect(o)){ patchOrder(o.id, {status:"pronto_envio", remessa:1, pickedAt:now, pickedBy:ME.id||"", conferidoLocal:true, res:r}); state.view="done"; render(); scrollTo(0,0); return; }
   const cmOut = o.fase2 && o.colmeia ? o.colmeia : "";
+  if(cmOut && o.cmBip?.cm!==cmOut){ state.oid=o.id; state.view="cmout"; render(); scrollTo(0,0); return; } // peças guardadas na colmeia: o separador busca e bipa a etiqueta antes de finalizar
   patchOrder(o.id, {status:"pronto_envio", remessa: o.fase2 && o.mode==="parcial" ? 2 : 1, pickedAt:now, atMesaAt:now, pickedBy:ME.id||"", receivedBy:ME.id||"", res:r, ...(hasTray(o)?{trayStatus:"mesa"}:{}),
-    ...(cmOut ? {colmeia:null, hist:[...(o.hist||[]), {t:now, by:ME.id||"", ev:`Encomenda chegou: peças retiradas da colmeia ${cmOut.slice(3)} e pedido finalizado na mesa`}]} : {})});
+    ...(cmOut ? {colmeia:null, cmBip:null, hist:[...(o.hist||[]), {t:now, by:ME.id||"", ev:`Encomenda chegou: peças retiradas da colmeia ${cmOut.slice(3)} (etiqueta bipada pelo separador) e pedido finalizado na mesa`}]} : {})});
   if(cmOut) toast(`Colmeia ${cmOut.slice(3)} liberada`);
   state.view="done"; render(); scrollTo(0,0);
 }
@@ -5716,12 +5750,13 @@ function handleScan(raw){
     if(/^\d{1,3}$/.test(v)){ const c=cur(); if(c){ state.count=Math.min(c.it.need, +v); const q=document.getElementById("q"); if(q) q.value=state.count; if(ok){ ok.textContent=`Confirmar ${state.count} pç`; ok.click(); } } return; }
   }
   if(!v || busy) return;
-  { const hv=hiveCode(v); if(isHiveCode(hv) && !["store","hvloc","hvmove","hvout","unstore"].includes(state.view) && !(state.view==="pick") && staleIn(hv).length){ feedback(true); openStaleCheck(hv); return; } }
+  { const hv=hiveCode(v); if(isHiveCode(hv) && !["store","cmout","hvloc","hvmove","hvout","unstore"].includes(state.view) && !(state.view==="pick") && staleIn(hv).length){ feedback(true); openStaleCheck(hv); return; } }
   if(state.view==="tray") return scanTray(v);
   if(state.view==="mesa") return scanMesa(v);
   if(state.view==="trays") return scanUnlink(v);
   if(state.view==="unstore") return scanUnstore(v);
   if(state.view==="hvout") return scanHvOut(v);
+  if(state.view==="cmout") return scanCmOut(v);
   if(state.view==="hvloc" || state.view==="hvmove") return scanHvPlace(v);
   if(state.view==="vinc"){ const r=String(raw||"").trim().toUpperCase().replace(/\s+/g,""); return scanVinc(locFromShort(r) || r); }
   if(onHiveTab()) return scanHiveLookup(v);
@@ -7746,7 +7781,7 @@ function render(){
   if(HV_TK) return renderTk();
   if(RC_TK) return renderRcTk();
   if(SR_PUB){ scanbar.hidden=true; IS_SHOWROOM=true; return renderShowroom(); }
-  keepAwake(IS_SHOWROOM || state.view==="tv" || (state.sector==="expedicao" && ["pick","tray","tomesa","store","mesa","trays"].includes(state.view)));
+  keepAwake(IS_SHOWROOM || state.view==="tv" || (state.sector==="expedicao" && ["pick","tray","tomesa","store","cmout","mesa","trays"].includes(state.view)));
   if(!authReady){ scanbar.hidden=true; return renderLoading(); }
   if(!myRole()){ scanbar.hidden=true; app.classList.remove("picking"); return renderNoAccess(); }
   if(IS_SHOWROOM){ scanbar.hidden=true; return renderShowroom(); }
@@ -7760,7 +7795,7 @@ function render(){
   if(state.sector==="expedicao" && state.sepTab==="colmeias"){ state.sector="colmeias"; state.sepTab="fila"; }
   if(!canSector(state.sector) && !(state.view==="hvout" && state.hvOut && canHvOut())){ const al=allowedSectors(); state.sector = al.includes("expedicao") && innerWidth<900 ? "expedicao" : (al.find(x=>x!=="colmeias")||al[0]); state.view="orders"; }
   if(state.sector==="expedicao"){
-    if(["pick","tray","done","tomesa","adjust"].includes(state.view) && !can("coleta")) state.view="orders";
+    if(["pick","tray","done","tomesa","adjust","cmout"].includes(state.view) && !can("coleta")) state.view="orders";
     if(state.view==="store" && !can("mesa") && !can("coleta")) state.view="orders";
     if(state.view==="mesa" && !can("mesa")) state.view="orders";
     if(state.view==="orders" && !can("coleta") && can("mesa") && !state.mesaListOk) state.view="mesa";
@@ -7800,6 +7835,7 @@ function render(){
   if(state.view==="mesa") return renderMesa();
   if(state.view==="pick") return renderPick();
   if(state.view==="store") return renderStore();
+  if(state.view==="cmout") return renderCmOut();
   if(state.view==="done") return renderDone();
   if(state.view==="tomesa") return renderToMesa();
   if(state.view==="trays") return renderTrays();
