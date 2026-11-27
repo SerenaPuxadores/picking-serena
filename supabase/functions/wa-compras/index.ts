@@ -55,6 +55,29 @@ async function enviar(c: Record<string, string>, apikey: string, numero: string,
   if (!r.ok) console.log("falha ao enviar", r.status, JSON.stringify(j).slice(0, 300));
 }
 
+// Áudio sem base64 no webhook: baixa do WhatsApp e descriptografa com a mediaKey (padrão do WhatsApp)
+const toBytes = (v: any): Uint8Array | null => {
+  if (!v) return null;
+  if (typeof v === "string") return Uint8Array.from(atob(v), (c) => c.charCodeAt(0));
+  if (Array.isArray(v?.data)) return new Uint8Array(v.data);
+  if (typeof v === "object") return new Uint8Array(Object.keys(v).sort((a, b) => +a - +b).map((k) => +v[k]));
+  return null;
+};
+const toB64 = (u: Uint8Array) => { let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); };
+async function baixarAudio(a: any): Promise<string | null> {
+  const mk = toBytes(a?.mediaKey);
+  const url = a?.url && String(a.url).startsWith("http") ? a.url : a?.directPath ? "https://mmg.whatsapp.net" + a.directPath : null;
+  if (!mk || !url) return null;
+  const r = await fetch(url);
+  if (!r.ok) { console.log("download do áudio falhou", r.status); return null; }
+  const enc = new Uint8Array(await r.arrayBuffer());
+  const ikm = await crypto.subtle.importKey("raw", mk, "HKDF", false, ["deriveBits"]);
+  const bits = new Uint8Array(await crypto.subtle.deriveBits({ name: "HKDF", hash: "SHA-256", salt: new Uint8Array(32), info: new TextEncoder().encode("WhatsApp Audio Keys") }, ikm, 112 * 8));
+  const key = await crypto.subtle.importKey("raw", bits.slice(16, 48), "AES-CBC", false, ["decrypt"]);
+  const dec = new Uint8Array(await crypto.subtle.decrypt({ name: "AES-CBC", iv: bits.slice(0, 16) }, key, enc.slice(0, enc.length - 10)));
+  return toB64(dec);
+}
+
 async function transcrever(c: Record<string, string>, b64: string, mime: string) {
   if (!c.openai_api_key) return null;
   const bytes = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0));
@@ -267,12 +290,13 @@ async function processar(body: any) {
   const aberta = !!(conv && Array.isArray(conv.historico) && conv.historico.length && Date.now() - new Date(conv.updated_at).getTime() < JANELA_MIN * 60_000);
 
   let audioPath: string | null = null;
-  const b64 = String(m.base64 || d.base64 || "");
+  let b64 = String(m.base64 || d.base64 || "");
   if (audio) {
-    if (!b64) { console.log("áudio sem base64: ligue 'Webhook Base64' na Evolution"); return; }
+    if (!b64) { try { b64 = (await baixarAudio(audio)) || ""; } catch (e) { console.log("descriptografar áudio", String((e as Error).message || e)); } }
+    if (!b64) { console.log("áudio sem conteúdo", JSON.stringify({ m: Object.keys(m), a: Object.keys(audio) })); return; }
     const tr = await transcrever(c, b64, String(audio.mimetype || "audio/ogg").split(";")[0]);
     if (tr === null) {
-      if (aberta || !ator.exigePrefixo) await enviar(c, apikey, ator.responderPara, "Recebi o áudio, mas a transcrição ainda não está ativada. Por enquanto, manda em texto.");
+      await enviar(c, apikey, ator.responderPara, c.openai_api_key ? "Não consegui transcrever esse áudio. Tenta de novo ou manda em texto." : "Recebi o áudio, mas a transcrição ainda não está ativada (falta a chave da OpenAI no Picking). Por enquanto, manda em texto.");
       return;
     }
     texto = tr;
