@@ -494,7 +494,7 @@ details.cpcard summary{display:flex;justify-content:space-between;align-items:ce
 .cpref{font-size:12px;color:var(--muted);margin-top:3px}
 .lnk{border:0;background:none;color:var(--route);font:inherit;font-size:12px;cursor:pointer;padding:0;text-decoration:underline}
 .cplink{display:inline-block;font-size:12px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:1px 6px;margin:1px 2px}
-.cpfoot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px}.cpfoot small{color:var(--muted)}.wafil{margin:0 0 12px;flex-wrap:wrap}.wacard .chmsgs{margin-top:0}.wacard audio{margin-top:6px;max-width:100%}
+.cpfoot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px}.cpfoot small{color:var(--muted)}.wafil{margin:0 0 12px;flex-wrap:wrap}.tabwa{display:inline-block;margin-left:4px;padding:0 6px;border-radius:99px;background:#25D366;color:#063;font-size:11px;font-weight:700;line-height:17px}.wasplit{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:16px;align-items:start}.wacol{min-width:0}.wasub{margin-bottom:10px}.walist{display:flex;flex-direction:column;gap:8px}.wali{display:flex;flex-direction:column;gap:4px;text-align:left;width:100%;background:var(--surface);border:1px solid var(--line);border-left:4px solid transparent;border-radius:12px;padding:10px 12px;font:inherit;color:var(--ink);cursor:pointer;transition:border-color .15s,background .15s}@media (hover:hover){.wali:hover{border-color:color-mix(in srgb,var(--ink) 22%,var(--line))}}.wali.on{border-color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}.walih{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.walit{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wali small{color:var(--muted);font-size:12px}.wapane{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}.wapaneh{display:flex;flex-direction:column;gap:6px}.wabk{display:none;align-self:flex-start}.waempty{color:var(--muted);font-size:14px;padding:40px 10px;text-align:center}.wachat{border-top:1px solid var(--line);padding-top:10px}.wachath{font-weight:700;font-size:14px;margin-bottom:6px}.wachath small{font-weight:400;color:var(--muted);margin-left:6px}.wachat .chmsgs{margin-top:0}.wapane audio{margin-top:6px;max-width:100%}@media (max-width:860px){.wasplit{grid-template-columns:1fr}.wasplit:not(.has) .wapane{display:none}.wasplit.has .wacol{display:none}.wapane{position:static;max-height:none}.wabk{display:inline}}
 .skubox{position:relative;min-width:0}
 .skudd{position:absolute;z-index:5;left:0;top:calc(100% + 4px);width:min(440px,80vw);max-height:280px;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:4px}
 .skudd button{display:flex;gap:10px;align-items:baseline;width:100%;text-align:left;border:0;background:none;color:var(--ink);font:inherit;font-size:13px;font-weight:500;padding:7px 8px;border-radius:7px;cursor:pointer}
@@ -2353,19 +2353,40 @@ let PURCHASES = {}, purchCol = null;
 let WA = [];
 const WA_ST = { confirmado:["A lançar","urg"], convertido:["Lançado no pedido","done"], cancelado:["Cancelado","norm"], rascunho:["Em conversa","prog"] };
 const waWhen = t => t ? new Date(t).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "";
-function waCard(p){
-  const [st,cls]=WA_ST[p.status]||[p.status,"norm"], its=p.itens||[], pc=its.reduce((t,i)=>t+(+i.quantidade||0),0), msgs=p.mensagens||[];
-  const who=id=>id && (USERS[id]?.name||USERS[id]?.login) || "", open=(state.waOpen||[]).includes(p.id);
-  return `<article class="cpcard wacard">
-    <div class="cphead"><b class="mono">WA-${p.id}</b><b>${esc(p.fornecedor||"Fornecedor não informado")}</b><span class="chip ${cls}">${st}</span>${p.previsao_entrega?`<span class="chip ${daysTo(p.previsao_entrega)<0&&p.status==="confirmado"?"bad":"prog"}">Previsão ${fmtDate(p.previsao_entrega)}</span>`:""}</div>
-    <div class="cpcli">${esc(p.nome||"WhatsApp")} · pelo WhatsApp<small>confirmado em ${waWhen(p.confirmado_em||p.created_at)} · ${its.length} ite${its.length===1?"m":"ns"} · ${pc} pç</small></div>
+const waTot = p => (p.itens||[]).reduce((t,i)=>t+(+i.quantidade||0),0);
+function fornSegHTML(purch, waNew){
+  const f = state.fTab || "importados";
+  return `<div class="seg wafil">${[["importados",`Importados · ${purch.length}`],["whats",`WhatsApp${waNew.length?` · ${waNew.length} a lançar`:""}`]].map(([k,t])=>`<button data-ftab="${k}" aria-pressed="${f===k}">${t}</button>`).join("")}</div>`;
+}
+function waSplitHTML(waNew, q){
+  const f = state.waF || "novos";
+  const lst = WA.filter(p=> f==="novos" ? p.status==="confirmado" : f==="lancados" ? p.status==="convertido" : true)
+    .filter(p=>!q || fz([p.id,p.fornecedor,p.nome,p.observacao,...(p.itens||[]).map(i=>(i.code||"")+" "+i.descricao)].join(" "), q));
+  const pgw = pageOf(lst, "cpwa", 12);
+  if(!lst.some(p=>p.id===state.waSel) && !matchMedia("(max-width:860px)").matches) state.waSel = lst[0]?.id ?? null;
+  const sel = WA.find(p=>p.id===state.waSel);
+  const list = `<div class="seg wafil wasub">${[["novos",`A lançar · ${waNew.length}`],["lancados","Lançados"],["todos","Todos"]].map(([k,t])=>`<button data-waf="${k}" aria-pressed="${f===k}">${t}</button>`).join("")}</div>`
+    + (lst.length ? `${pgw.top}<div class="walist">${pgw.items.map(p=>{ const [st,cls]=WA_ST[p.status]||[p.status,"norm"], n=(p.itens||[]).length;
+        return `<button class="wali ${p.id===state.waSel?"on":""}" data-wasel="${p.id}" aria-pressed="${p.id===state.waSel}">
+          <span class="walih"><b class="mono">WA-${p.id}</b><b>${esc(p.fornecedor||"Fornecedor?")}</b><span class="chip ${cls}">${st}</span></span>
+          <span class="walit">${esc((p.itens||[]).slice(0,2).map(i=>`${i.quantidade}x ${i.descricao}`).join(" · "))}${n>2?` · +${n-2}`:""}</span>
+          <small>${esc(p.nome||"WhatsApp")} · ${waWhen(p.confirmado_em||p.created_at)} · ${n} ite${n===1?"m":"ns"} · ${waTot(p)} pç${(p.mensagens||[]).some(m=>m.audio)?" · áudio":""}</small></button>`; }).join("")}</div>${pgw.pager}`
+      : `<div class="empty">${q?"Nada encontrado para essa busca.":f==="novos"?"Nenhum pedido do WhatsApp esperando lançamento.":"Nenhum pedido do WhatsApp aqui."}</div>`);
+  return `<div class="wasplit ${sel?"has":""}"><div class="wacol">${list}</div><aside class="wapane" id="waPane">${sel?waPaneHTML(sel):`<div class="waempty">Toque num pedido à esquerda para ver os itens e a conversa do WhatsApp.</div>`}</aside></div>`;
+}
+function waPaneHTML(p){
+  const [st,cls]=WA_ST[p.status]||[p.status,"norm"], its=p.itens||[], msgs=p.mensagens||[];
+  const who=id=>id && (USERS[id]?.name||USERS[id]?.login) || "";
+  return `<div class="wapaneh"><button class="lnk wabk" data-waback>‹ Voltar à lista</button>
+      <div class="cphead"><b class="mono">WA-${p.id}</b><b>${esc(p.fornecedor||"Fornecedor não informado")}</b><span class="chip ${cls}">${st}</span>${p.previsao_entrega?`<span class="chip ${daysTo(p.previsao_entrega)<0&&p.status==="confirmado"?"bad":"prog"}">Previsão ${fmtDate(p.previsao_entrega)}</span>`:""}</div>
+      <div class="cpcli">${esc(p.nome||"WhatsApp")} · pelo WhatsApp<small>confirmado em ${waWhen(p.confirmado_em||p.created_at)} · ${its.length} ite${its.length===1?"m":"ns"} · ${waTot(p)} pç</small></div></div>
     <div class="cptwrap"><table class="cptab"><thead><tr><th>Código</th><th>Item</th><th class="r">Qtd</th></tr></thead><tbody>${its.map(i=>`<tr><td class="mono">${esc(i.code||"—")}</td><td>${esc(i.descricao||"")}${i.code&&PRODUCTS[i.code]?.name&&PRODUCTS[i.code].name!==i.descricao?`<div class="cpref">${esc(PRODUCTS[i.code].name)}</div>`:""}${!i.code?`<div class="cpref">sem SKU identificado</div>`:""}</td><td class="r tnum">${i.quantidade} pç</td></tr>`).join("")}</tbody></table></div>
     ${p.observacao?`<div class="cpnote">Obs.: ${esc(p.observacao)}</div>`:""}
-    ${msgs.length?`<button class="lnk xpbtn" data-waxp="${p.id}" aria-expanded="${open}"><span>${open?"Esconder":"Ver"} a conversa (${msgs.length} mensage${msgs.length===1?"m":"ns"})</span></button>${open?`<div class="chmsgs">${msgs.map(m=>`<div class="lcm ${m.de==="assistente"?"a":"u"}"><div class="lcb">${m.tipo==="audio"?"<b>Áudio:</b> ":""}${esc(m.texto||"").replace(/\n/g,"<br>")}${m.audio?`<div><button class="mini" data-waaud="${esc(m.audio)}">Ouvir o áudio</button></div>`:""}</div><span class="chts">${esc(m.de==="assistente"?"Assistente":m.de||"")} · ${waWhen(m.at)}</span></div>`).join("")}</div>`:""}`:""}
     ${can("compras") ? `<div class="cpfoot">${p.status==="confirmado"?`<button class="btn primary" data-walan="${p.id}">Marcar como lançado</button><button class="mini" data-wacan="${p.id}">Cancelar</button><small>Depois de importar o pedido do fornecedor (ou conferir que ele já está no sistema), marque como lançado.</small>`
       : p.status==="convertido"?`<small>Lançado${p.convertido_por&&who(p.convertido_por)?" por "+esc(who(p.convertido_por)):""} em ${waWhen(p.convertido_em)}</small><button class="mini" data-waund="${p.id}">Desfazer</button>`
       : p.status==="cancelado"?`<button class="mini" data-waund="${p.id}">Reabrir</button>`:""}</div>` : ""}
-  </article>`;
+    <div class="wachat"><div class="wachath">Conversa no WhatsApp <small>${msgs.length} mensage${msgs.length===1?"m":"ns"}</small></div>
+      <div class="chmsgs">${msgs.length?msgs.map(m=>`<div class="lcm ${m.de==="assistente"?"a":"u"}"><div class="lcb">${m.tipo==="audio"?"<b>Áudio:</b> ":""}${esc(m.texto||"").replace(/\n/g,"<br>")}${m.audio?`<div><button class="mini" data-waaud="${esc(m.audio)}">Ouvir o áudio</button></div>`:""}</div><span class="chts">${esc(m.de==="assistente"?"Assistente":m.de||"")} · ${waWhen(m.at)}</span></div>`).join(""):`<span class="muted-s">Sem mensagens registradas.</span>`}</div></div>`;
 }
 const encItems = o => (o.items||[]).map((it,i)=>({...it, i, qtyEnc:(it.qtyEnc||0)-(it.qtyDec||0)})).filter(x=>x.qtyEnc>0); // qtyDec: aguardando Compras decidir (ajuste)
 const decPend = o => (o.items||[]).some(it=>it.qtyDec>0);
@@ -2438,15 +2459,7 @@ function renderCompras(){
   const purch = Object.values(PURCHASES).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
   const waNew = WA.filter(p=>p.status==="confirmado");
   let body;
-  if(tab==="whats"){
-    const f = state.waF || "novos";
-    const lst = WA.filter(p=> f==="novos" ? p.status==="confirmado" : f==="lancados" ? p.status==="convertido" : true)
-      .filter(p=>!q || fz([p.id,p.fornecedor,p.nome,p.observacao,...(p.itens||[]).map(i=>(i.code||"")+" "+i.descricao)].join(" "), q));
-    const pgw = pageOf(lst, "cpwa", 10);
-    body = `<div class="seg wafil">${[["novos",`A lançar · ${waNew.length}`],["lancados","Lançados"],["todos","Todos"]].map(([k,t])=>`<button data-waf="${k}" aria-pressed="${f===k}">${t}</button>`).join("")}</div>`
-      + (lst.length ? `${pgw.top}<div class="cplist">${pgw.items.map(waCard).join("")}</div>${pgw.pager}`
-        : `<div class="empty">${q?"Nada encontrado para essa busca.":f==="novos"?"Nenhum pedido do WhatsApp esperando lançamento.":"Nenhum pedido do WhatsApp aqui."}</div>`);
-  } else if(tab==="desmembrar"){
+  if(tab==="desmembrar"){
     const list = desm.filter(match);
     body = list.length ? `<div class="cplist">${list.map(desmCard).join("")}</div>` : `<div class="empty">${q?"Nada encontrado para essa busca.":"Nenhuma pré-venda aguardando desmembramento."}</div>`;
   } else if(tab==="decidir"){
@@ -2475,15 +2488,17 @@ function renderCompras(){
           <td class="r">${L.length?`<button class="mini ${n.received && !am?"on":""}" data-nfedit="${esc(n.id)}">${n.draft?"Continuar amarração":am?"Ver amarração":"Amarrar"}</button>`:""}</td></tr>
           ${isOpen||anim?`<tr class="nfx"><td colspan="7"><div class="nfxw ${isOpen&&!anim?"open":""}" data-nfxw="${esc(n.id)}"><div>${nfItemsHTML(n)}</div></div></td></tr>`:""}`; }).join("")}</tbody></table></div></div>${pgn.pager}`
       : `<div class="empty">${q?"Nenhuma nota com essa busca.":"Nenhuma nota fiscal importada ainda. Use <b>Importar nota fiscal</b>."}</div>`;
+  } else if(tab==="fornecedor" && (state.fTab||"importados")==="whats"){
+    body = fornSegHTML(purch, waNew) + waSplitHTML(waNew, q);
   } else if(tab==="fornecedor"){
     const pgf = pageOf(purch, "cpforn", 10);
-    body = purch.length ? `${pgf.top}<div class="cplist">${pgf.items.map(p=>{ const links=p.lines.reduce((s,l)=>s+(l.links||[]).length,0);
+    body = fornSegHTML(purch, waNew) + (purch.length ? `${pgf.top}<div class="cplist">${pgf.items.map(p=>{ const links=p.lines.reduce((s,l)=>s+(l.links||[]).length,0);
       const pgl = pageOf(p.lines, "cpl-"+p.id, 25);
       return `<details class="cpcard" data-cpid="${esc(p.id)}" ${(state.cpOpen||[]).includes(p.id)?"open":""}><summary><div class="cphead"><b>${esc(p.forn||"Fornecedor")}</b>${p.num?`<span class="muted-s">Pedido ${esc(p.num)}</span>`:""}<span class="muted-s">importado ${new Date(p.createdAt).toLocaleDateString("pt-BR")}</span>${p.prev?`<span class="chip ${daysTo(p.prev)<0?"bad":"done"}">Previsão ${fmtDate(p.prev)}</span>`:""}</div>
         <span class="chip ${links?"enc":"bad"}">${p.lines.length} itens · ${links} vínculo${links===1?"":"s"}</span></summary>
         <div class="cptwrap"><table class="cptab"><thead><tr><th>Código</th><th>Item Serena</th><th>Descrição</th><th class="r">Qtd</th><th>Pedido · entrega</th><th>Pré-vendas</th></tr></thead><tbody>${pgl.items.map(l=>`<tr><td class="mono">${esc(l.code)}</td><td class="mono">${esc(l.sku||"—")}</td><td>${esc(l.name||"")}</td><td class="r tnum">${l.qty||""}</td><td class="tnum">${esc(l.ped||p.num||"—")}${l.entrega?" · "+esc(fmtBR(l.entrega)):""}</td>
           <td>${(l.links||[]).map(k=>{ const o=ORDERS.find(x=>x.id===k.oid); return `<span class="cplink">#${esc(o?.num||k.oid.replace(/^PV-/,""))} · ${k.qty} pç</span>`; }).join(" ")||`<span class="muted-s">estoque</span>`}</td></tr>`).join("")}</tbody></table></div>${pgl.pager}</details>`; }).join("")}</div>${pgf.pager}`
-      : `<div class="empty">Nenhum pedido de fornecedor importado ainda. Use <b>Importar pedido do fornecedor</b>.</div>`;
+      : `<div class="empty">Nenhum pedido de fornecedor importado ainda. Use <b>Importar pedido do fornecedor</b>.</div>`);
   } else {
     const list = (tab==="concluidas" ? done : open).filter(match);
     const pg = pageOf(list, "compras", 12);
@@ -2494,8 +2509,8 @@ function renderCompras(){
     <header class="bar"><div class="grow"><h1>Compras · encomendas</h1><div class="sub">Itens que o comercial vendeu sob encomenda e o pedido feito ao fornecedor</div></div>
       <div class="cpbtns"><button class="btn ghost cpbtn" id="cpNf">Importar nota fiscal</button><button class="btn primary cpbtn" id="cpImport">Importar pedido do fornecedor</button></div></header>
     ${cpMetricsHTML(desm.length)}
-    <div class="cptools"><div class="seg">${[["decidir",`Para decidir · ${decide.length}`],["desmembrar",`Desmembrar · ${desm.length}`],["abertas",`Em aberto · ${open.length}${(n=>n?` <span class="tab25">${n} +25d</span>`:"")(open.filter(late25).length)}`],["chegada",`Aguardando chegada · ${aguard.length}${late.length?` (${late.length} atrasado${late.length===1?"":"s"})`:""}`],["fornecedor",`Pedidos ao fornecedor · ${purch.length}`],["whats",`WhatsApp · ${waNew.length}`],["notas",`Notas fiscais · ${Object.keys(NFS).length}`],["concluidas","Concluídas"]].map(([k,t])=>`<button data-ctab="${k}" aria-pressed="${tab===k}">${t}</button>`).join("")}</div>
-      ${tab!=="fornecedor"?`<input class="tinput cpq" id="cpQ" placeholder="${tab==="notas"?"Buscar nota, fornecedor ou item":tab==="whats"?"Buscar fornecedor, item ou quem lançou":"Buscar pré-venda, cliente ou código"}" value="${esc(state.cQ||"")}">`:""}</div>
+    <div class="cptools"><div class="seg">${[["decidir",`Para decidir · ${decide.length}`],["desmembrar",`Desmembrar · ${desm.length}`],["abertas",`Em aberto · ${open.length}${(n=>n?` <span class="tab25">${n} +25d</span>`:"")(open.filter(late25).length)}`],["chegada",`Aguardando chegada · ${aguard.length}${late.length?` (${late.length} atrasado${late.length===1?"":"s"})`:""}`],["fornecedor",`Pedidos ao fornecedor · ${purch.length}${waNew.length?` <span class="tabwa">${waNew.length} WhatsApp</span>`:""}`],["notas",`Notas fiscais · ${Object.keys(NFS).length}`],["concluidas","Concluídas"]].map(([k,t])=>`<button data-ctab="${k}" aria-pressed="${tab===k}">${t}</button>`).join("")}</div>
+      ${tab!=="fornecedor"||state.fTab==="whats"?`<input class="tinput cpq" id="cpQ" placeholder="${tab==="notas"?"Buscar nota, fornecedor ou item":tab==="fornecedor"?"Buscar fornecedor, item ou quem lançou":"Buscar pré-venda, cliente ou código"}" value="${esc(state.cQ||"")}">`:""}</div>
     ${adjComprasHTML(ORDERS.filter(o=>o.adjCompras && !o.adjCompras.ok))}
     <div id="cpBody">${body}</div>`;
   bindNav(); fillNames(app.querySelector(".cpmets"));
@@ -2528,8 +2543,10 @@ function renderCompras(){
   app.querySelectorAll("[data-carr]").forEach(b=>b.onclick=()=>{ const [oid,i]=b.dataset.carr.split(":"); setItemArrived(oid,+i,b.dataset.v==="1"); });
   app.querySelectorAll("[data-crel]").forEach(b=>b.onclick=()=>{ if(!b.dataset.c){ b.dataset.c="1"; b.textContent="Confirmar: encomenda chegou"; return; } releaseEnc(b.dataset.crel); });
   bindDecide(); bindDesm();
-  app.querySelectorAll("[data-waf]").forEach(b=>b.onclick=()=>{ state.waF=b.dataset.waf; resetPage("cpwa"); render(); });
-  app.querySelectorAll("[data-waxp]").forEach(b=>b.onclick=()=>{ const id=+b.dataset.waxp, st=new Set(state.waOpen||[]); st.has(id)?st.delete(id):st.add(id); state.waOpen=[...st]; render(); });
+  app.querySelectorAll("[data-waf]").forEach(b=>b.onclick=()=>{ state.waF=b.dataset.waf; state.waSel=null; resetPage("cpwa"); render(); });
+  app.querySelectorAll("[data-ftab]").forEach(b=>b.onclick=()=>{ state.fTab=b.dataset.ftab; state.cpAnim=true; render(); });
+  app.querySelectorAll("[data-wasel]").forEach(b=>b.onclick=()=>{ state.waSel=+b.dataset.wasel; render(); const pn=document.getElementById("waPane"); if(pn && matchMedia("(max-width:860px)").matches) pn.scrollIntoView({block:"start"}); else pn?.querySelector(".chmsgs")?.lastElementChild?.scrollIntoView({block:"nearest"}); });
+  app.querySelectorAll("[data-waback]").forEach(b=>b.onclick=()=>{ state.waSel=null; render(); });
   app.querySelectorAll("[data-waaud]").forEach(b=>b.onclick=async()=>{ try{ b.disabled=true; const a=document.createElement("audio"); a.controls=true; a.src=await psWa.audio(b.dataset.waaud); b.replaceWith(a); a.play().catch(()=>{}); }catch(e){ b.disabled=false; toast("Não foi possível abrir o áudio"); } });
   const waSet=async(id,patch,msg)=>{ try{ await psWa.update(id,patch); const p=WA.find(x=>x.id===id); if(p) Object.assign(p,patch); toast(msg); render(); }catch(e){ toast("Não foi possível salvar: "+e.message); } };
   const uuid=/^[0-9a-f-]{36}$/i.test(String(ME.id||"")) ? ME.id : null;
